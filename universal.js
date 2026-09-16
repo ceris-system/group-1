@@ -1,14 +1,15 @@
 /**
- * C.E.R.I.S SYSTEM - Universal API Configuration
- * ------------------------------------------------
- * Single source of truth for the backend URL and the auth token.
- * Every page (index.html) AND every module iframe (each modules
- * subfolder's HTML file) loads this file directly, so nothing
- * hardcodes its own copy of the
- * URL/token anymore and nothing depends on window.parent existing.
+ * UNIVERSAL API CONFIG — the ONE place the backend URL + token live.
+ * index.html loads this file directly (in <head>), so window.API and
+ * window.API_TOKEN are set before any other script runs on that page.
+ * Modules loaded in iframes pick it up via window.parent.API.
  *
- * IMPORTANT: window.API_TOKEN below MUST exactly match APP_SECRET in
- * the Apps Script backend (Code.gs). If you rotate one, rotate both.
+ * After you redeploy Google Apps Script (Deploy > Manage deployments),
+ * copy the new Web App URL and paste it as window.API below.
  */
-window.API = "https://script.google.com/macros/s/AKfycbwKiXQETth6iqptvflJOC8uiokISauplzLsKsNVKycGv7DOZNHmWSDFmMJWnPbOnlDX/exec";
+
+window.API = "https://script.google.com/macros/s/AKfycbx2tjsB1GOk7utvwoWF5Z4Uua-DX-vgKSweig8qhKugb96vLU7XEQeojJcjhQYmpqpX/exec";
+
+// Must exactly match APP_SECRET in your Apps Script (Code.gs). Only change
+// this if you rotate the secret on the backend too.
 window.API_TOKEN = "fab3805f-73fa-43f4-a844-8c42ddc322a99050e3aa-e547-4e51-962f-dbd936dcb47d";

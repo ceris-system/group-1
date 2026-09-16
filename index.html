@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
+    <script src="universal.js"></script>
     <title>C.E.R.I.S SYSTEM</title>
     <link rel="icon" type="image/png" href="BETA.png">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -226,9 +227,8 @@
     </div>
 
     <script>
-        // Configuration
-        window.API = "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
-        
+        // window.API / window.API_TOKEN now come from universal.js (loaded in <head>).
+
         // Local UI Logic
         function togglePass(id) {
             const input = document.getElementById(id);

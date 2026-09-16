@@ -2,7 +2,7 @@
  * C.E.R.I.S System - Main External Logic
  */
 
-const API_URL = window.API || "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+const API_URL = window.API; // comes from universal.js, loaded in index.html's <head>
 
 async function handleAction(action) {
     const user = document.getElementById('userInput').value;
