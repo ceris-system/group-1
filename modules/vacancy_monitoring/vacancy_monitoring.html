@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vacancy Monitoring Module</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0f1d;
+            --panel-bg: rgba(10, 15, 29, 0.85);
+            --border-glow: rgba(0, 219, 255, 0.3);
+            --accent-cyan: #f6f8f8;
+            --accent-blue: #0291ff;
+            --accent: #00f3ff;
+            --text-main: #ffffff;
+            --text-muted: #8ca2c0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        body {
+            background-color: transparent;
+            color: var(--text-main);
+            padding: 20px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spinReverse {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+        }
+
+        .module-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(2, 6, 15, 0.5);
+        }
+        .space {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .client-name-display {
+            font-size: 0.95rem;
+            color: var(--accent);
+            letter-spacing: 1px;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 9px 15px;
+            border-radius: 6px;
+        }
+
+        .module-title-badge {
+            font-size: 0.95rem;
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 9px 15px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .search-box {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 38px;
+            background: rgba(0, 219, 255, 0.05);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 219, 255, 0.2);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent-cyan);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .total-hc-badge {
+            background: rgba(0, 219, 255, 0.1);
+            border: 1px solid var(--accent-cyan);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .futuristic-refresh-btn {
+            position: relative;
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .futuristic-refresh-btn:hover {
+            background: rgba(0, 219, 255, 0.15);
+            box-shadow: 0 0 15px rgba(0, 219, 255, 0.4);
+        }
+
+        .futuristic-refresh-btn i {
+            transition: transform 0.6s ease;
+        }
+
+        .futuristic-refresh-btn.spinning i {
+            transform: rotate(360deg);
+        }
+
+        .table-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgb(2, 6, 15);
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(0, 219, 255, 0.04);
+        }
+
+        .eye-btn {
+            background: rgba(2, 145, 255, 0.1);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .eye-btn:hover {
+            background: var(--accent-blue);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(2, 145, 255, 0.5);
+        }
+
+        .side-drawer {
+            position: fixed;
+            top: 0;
+            right: -680px;
+            width: 640px;
+            height: 100vh;
+            background: #070b16;
+            border-left: 1px solid var(--accent-cyan);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-sizing: border-box;
+            overflow-y: auto;
+            padding-bottom: 100px;
+        }
+
+        .side-drawer.open {
+            right: 0;
+        }
+
+        .drawer-header {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-glow);
+            gap: 12px;
+            position: relative;
+        }
+
+        .drawer-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .drawer-header h3 {
+            color: #f52004;
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .drawer-info-display {
+            display: flex;
+            gap: 24px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .drawer-info-display span strong {
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .close-drawer {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.2s;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .close-drawer:hover {
+            color: var(--accent-cyan);
+        }
+
+        .drawer-body {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 15px;
+            align-content: start;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* Make Reliever field and Remarks span full width for better readability */
+        .form-group:nth-child(6),
+        .form-group:nth-child(7) {
+            grid-column: span 2;
+        }
+
+        .form-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .form-group input, .form-group select {
+            padding: 10px;
+            background: rgb(10, 10, 10);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            color: var(--text-main);
+            outline: none;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(0, 219, 255, 0.2);
+        }
+
+        .drawer-footer {
+            padding: 20px 30px;
+            border-top: 1px solid var(--border-glow);
+            display: flex;
+            justify-content: center;
+            background: #070b16;
+        }
+
+        .update-btn {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(0, 219, 255, 0.4);
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .update-btn:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 25px rgba(0, 219, 255, 0.7);
+        }
+
+        /* Custom Futuristic Alert Modal Styles */
+        #customAlertModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 15, 29, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 20000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .custom-alert-box {
+            width: 400px;
+            max-width: 90vw;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--accent, #00f3ff);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+            text-align: center;
+            animation: modalPopIn 0.3s ease;
+        }
+
+        @keyframes modalPopIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .custom-alert-icon {
+            font-size: 2.5rem;
+            color: var(--accent, #00f3ff);
+            margin-bottom: 15px;
+        }
+
+        .custom-alert-title {
+            color: var(--accent, #00f3ff);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .custom-alert-message {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .custom-alert-btn {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            color: #ffffff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(0, 219, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .custom-alert-btn:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 25px rgba(0, 219, 255, 0.7);
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(2, 6, 15, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-glow);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-cyan);
+        }
+
+        .searchable-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .dropdown-options-list {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 180px;
+            overflow-y: auto;
+            background: #070b16;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 6px;
+            z-index: 9999;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.9);
+            margin-bottom: 2px;
+        }
+
+        .dropdown-options-list.show {
+            display: block !important;
+        }
+
+        .dropdown-option-item {
+            padding: 10px 12px;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s ease;
+        }
+
+        .dropdown-option-item:hover {
+            background: rgba(0, 219, 255, 0.2);
+            color: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="module-container">
+        <!-- Overlay Loader matching requested style -->
+        <div id="loader" style="display:none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 29, 0.8); backdrop-filter: blur(5px); z-index: 999; text-align:center; padding-top:15vh;">
+            <div class="glass-modal" style="display: inline-block; width: 350px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 12px; padding: 25px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);">
+                <div style="position: relative; width: 100px; height: 100px; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center;">
+                    <div style="position: absolute; width: 100%; height: 100%; border: 2px dashed rgba(0, 243, 255, 0.3); border-radius: 50%; animation: spin 10s linear infinite;"></div>
+                    <div style="position: absolute; width: 80px; height: 80px; border: 3px solid transparent; border-top-color: var(--accent, #00f3ff); border-bottom-color: var(--accent, #00f3ff); border-radius: 50%; animation: spinReverse 2s linear infinite;"></div>
+                    <div style="position: absolute; width: 60px; height: 60px; border: 2px dotted rgba(255, 255, 255, 0.4); border-radius: 50%; animation: spin 4s linear infinite;"></div>
+                    <div style="width: 12px; height: 12px; background: #ffffff; border-radius: 50%; box-shadow: 0 0 15px var(--accent, #00f3ff);"></div>
+                </div>
+                <h4 id="loaderTitle" style="color: var(--accent, #00f3ff); margin: 0 0 15px 0; font-family: monospace; letter-spacing: 1px; font-size: 14px;">UPDATING SYSTEM DATABASE</h4>
+                <div class="progress-wrapper" style="background: rgba(255, 255, 255, 0.1); border-radius: 6px; overflow: hidden; height: 8px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div id="initialBar" class="progress-fill" style="background: var(--accent, #00f3ff); width: 0%; height: 100%; transition: width 0.2s ease; box-shadow: 0 0 10px var(--accent, #00f3ff);"></div>
+                </div>
+                <span id="initialPercent" style="font-size: 12px; color: var(--accent, #00f3ff); font-family: monospace;">0%</span>
+            </div>
+        </div>
+
+        <div class="module-header">
+            <div class="header-left">
+                <div class="client-name-display" id="clientNameDisplay" style="display: none;">---</div>
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="filterSearch" placeholder="Filter search..." onkeyup="filterTableData()">
+                </div>
+                <div class="module-title-badge">VACANCY MONITORING</div>
+            </div>
+            <div class="header-right">
+                <div class="total-hc-badge">TOTAL HC: <span id="totalHCDisplay">0.00</span></div>
+                <button class="futuristic-refresh-btn" id="refreshBtn" onclick="loadVacancyData()">
+                    <i class="fa-solid fa-rotate"></i> REFRESH
+                </button>
+            </div>
+        </div>
+        <br>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>VCODE</th>
+                        <th>OUTLET</th>
+                        <th>POSITION</th>
+                        <th>HC</th>
+                        <th>VACANT DATE</th>
+                        <th>AGING</th>
+                        <th>VIEW</th>
+                    </tr>
+                </thead>
+                <tbody id="vacancyTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted);">Loading vacancy records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="side-drawer" id="sideDrawer">
+        <div class="drawer-header">
+            <div class="drawer-header-top">
+                <h3>VACANCY RECORD DETAILS</h3>
+                <button class="close-drawer" onclick="closeSideDrawer()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="drawer-info-display">
+                <span>VCODE: <strong id="drawerVcodeText">---</strong></span>
+                <span>OUTLET: <strong id="drawerOutletText">---</strong></span>
+            </div>
+        </div>
+        <div class="drawer-body">
+            <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" id="drawerLastName">
+            </div>
+            <div class="form-group">
+                <label>First Name</label>
+                <input type="text" id="drawerFirstName">
+            </div>
+            <div class="form-group">
+                <label>Middle Name</label>
+                <input type="text" id="drawerMiddleName">
+            </div>
+            <div class="form-group">
+                <label>Contact Number</label>
+                <input type="text" id="drawerContact">
+            </div>
+            <div class="form-group">
+                <label>Onboard Date</label>
+                <input type="date" id="drawerOnboardDate">
+            </div>
+            <div class="form-group">
+                <label>RELIEVER ON DUTY / DATE ON BOARD (25-Feb-2026 - DONAYRE. JOHN PAUL)</label>
+                <input type="text" id="drawerReliever" placeholder="25-Feb-2026 - DONAYRE. JOHN PAUL">
+            </div>
+            <div class="form-group">
+                <label>HRCO Remarks</label>
+                <input type="text" id="drawerRemarks">
+            </div>
+            <div class="form-group">
+                <label>Coordinator</label>
+                <div class="searchable-dropdown" id="dropdownCoordinatorContainer">
+                    <input type="text" class="dropdown-search-input" id="searchCoordinator" placeholder="Search or select coordinator..." onclick="openDropdownList('coordinator')" onfocus="openDropdownList('coordinator')" onkeyup="filterDropdownList('coordinator')">
+                    <input type="hidden" id="drawerCoordinator">
+                    <div class="dropdown-options-list" id="listCoordinator"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Deployed By</label>
+                <div class="searchable-dropdown" id="dropdownDeployerContainer">
+                    <input type="text" class="dropdown-search-input" id="searchDeployer" placeholder="Search or select deployer..." onclick="openDropdownList('deployer')" onfocus="openDropdownList('deployer')" onkeyup="filterDropdownList('deployer')">
+                    <input type="hidden" id="drawerDeployedBy">
+                    <div class="dropdown-options-list" id="listDeployer"></div>
+                </div>
+            </div>
+        </div>
+        <div class="drawer-footer">
+            <button class="update-btn" onclick="updateVacancyRecord()">UPDATE RECORD</button>
+        </div>
+    </div>
+
+    <!-- Custom Popup Modal Alert Container -->
+    <div id="customAlertModal">
+        <div class="custom-alert-box">
+            <div class="custom-alert-icon" id="customAlertIcon"><i class="fa-solid fa-circle-info"></i></div>
+            <div class="custom-alert-title" id="customAlertTitle">SYSTEM NOTIFICATION</div>
+            <div class="custom-alert-message" id="customAlertMessage">Alert message goes here.</div>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">OK</button>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sheetID = urlParams.get('sheetID');
+        let globalVacancyData = [];
+        let rawCoordinatorsList = [];
+        let rawDeployersList = [];
+
+        window.onload = function() {
+            loadVacancyData();
+            loadDeployerDropdowns();
+        };
+
+        // Custom Popup Alert implementation replacing browser native alert()
+        function showCustomAlert(message, title = "SYSTEM NOTIFICATION", type = "info") {
+            const modal = document.getElementById('customAlertModal');
+            const msgEl = document.getElementById('customAlertMessage');
+            const titleEl = document.getElementById('customAlertTitle');
+            const iconEl = document.getElementById('customAlertIcon');
+
+            msgEl.innerText = message;
+            titleEl.innerText = title;
+
+            if (type === 'success') {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                iconEl.style.color = '#00f3ff';
+            } else if (type === 'error') {
+                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                iconEl.style.color = '#f52004';
+            } else {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+                iconEl.style.color = '#0291ff';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeCustomAlert() {
+            document.getElementById('customAlertModal').style.display = 'none';
+        }
+
+        // Smooth progress bar simulation for refresh/load actions
+        function simulateProgress(onComplete, titleText = "UPDATING SYSTEM DATABASE") {
+            const loader = document.getElementById('loader');
+            const initialBar = document.getElementById('initialBar');
+            const initialPercent = document.getElementById('initialPercent');
+            const loaderTitle = document.getElementById('loaderTitle');
+            
+            loaderTitle.innerText = titleText;
+            loader.style.display = 'block';
+            let progress = 0;
+            
+            initialBar.style.width = '0%';
+            initialPercent.innerText = '0%';
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if (progress > 90) progress = 90;
+                
+                initialBar.style.width = progress + '%';
+                initialPercent.innerText = progress + '%';
+
+                if (progress >= 90) {
+                    clearInterval(interval);
+                    if (onComplete) {
+                        onComplete(() => {
+                            initialBar.style.width = '100%';
+                            initialPercent.innerText = '100%';
+                            setTimeout(() => {
+                                loader.style.display = 'none';
+                            }, 300);
+                        });
+                    }
+                }
+            }, 100);
+        }
+
+        async function loadVacancyData() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.classList.add('spinning');
+
+            simulateProgress(async (finishProgress) => {
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const sheetID = urlParams.get('sheetID');
+                    const clientHeaderParam = urlParams.get('clientHeader') || "";
+
+                    const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=vacancy_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}`);
+                    const jsonResponse = await response.json();
+
+                    if (jsonResponse.error) {
+                        showCustomAlert("Error: " + jsonResponse.error, "DATABASE ERROR", "error");
+                        finishProgress();
+                        return;
+                    }
+
+                    // Populate client name element next to search bar and remove the word "SYSTEM" / "SYSTM"
+                    const rawClientName = jsonResponse.clientHeader || clientHeaderParam || "";
+    const cleanedClientName = rawClientName.replace(/systm|system/gi, "").trim();
+    document.getElementById('clientNameDisplay').innerText = cleanedClientName || "---";
+
+    globalVacancyData = [];
+    const dataRows = jsonResponse.rows || [];
+
+    for (let i = 0; i < dataRows.length; i++) {
+        const r = dataRows[i];
+        const vcode = String(r[1] || "").trim(); // Column B
+        if (!vcode) continue;
+
+        let matches = false;
+
+        // Condition 1: If logged in as "FOREVER DISER", look at Column AB (Index 27) instead of Column C
+        if (cleanedClientName.toUpperCase() === "FOREVER DISER") {
+            const colABValue = String(r[27] || "").replace(/[\r\n\u00A0]+/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+            matches = colABValue.includes("FOREVER");
+        } 
+        // Condition 2: If using a specific sub-cluster, look at Column C (Index 2)
+        else {
+            const colCValue = String(r[2] || "").replace(/[\r\n\u00A0]+/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+            matches = colCValue.includes(cleanedClientName.toUpperCase());
+        }
+
+        if (!matches) {
+            continue;
+        }
+
+        const hcVal = parseFloat(r[8]) || 0; // Column J
+
+        globalVacancyData.push({
+            vcode: vcode,
+            outlet: r[6] || "",      // Column H
+            position: r[7] || "",    // Column I
+            hc: hcVal.toFixed(2),
+            rawHc: hcVal,
+            vacantDate: formatDisplayDate(r[14]), // Column P
+            rawVacantDate: r[14],
+            aging: (r[17] !== undefined && r[17] !== null && r[17] !== "") ? r[17] : "",
+            lastName: r[10] || "",    // Column L
+            firstName: r[11] || "",   // Column M
+            middleName: r[12] || "",  // Column N
+            contact: r[13] || "",     // Column O
+            onboardDate: r[15] || "", // Column Q
+            reliever: r[20] || "",    // Column V
+            remarks: r[22] || "",     // Column X
+            coordinator: r[29] || "", // Column AE
+            deployedBy: r[31] || ""   // Column AG
+        });
+    }
+
+    renderTable(globalVacancyData);
+
+                } catch (err) {
+                    console.error("Failed to fetch vacancy records", err);
+                } finally {
+                    finishProgress();
+                    setTimeout(() => refreshBtn.classList.remove('spinning'), 600);
+                }
+            }, "LOADING VACANCY RECORDS");
+        }
+
+        function formatDisplayDate(dateVal) {
+            if (!dateVal || isNaN(Date.parse(dateVal))) return "---";
+            const d = new Date(dateVal);
+            return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        function formatStorageDate(dateStr) {
+            if (!dateStr) return "";
+            const d = new Date(dateStr);
+            if (isNaN(d)) return dateStr;
+            return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('vacancyTableBody');
+            
+            let totalHC = 0;
+            data.forEach(item => {
+                totalHC += item.rawHc;
+            });
+            document.getElementById('totalHCDisplay').innerText = totalHC.toFixed(2);
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No records found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.vcode}</td>
+                    <td>${item.outlet}</td>
+                    <td>${item.position}</td>
+                    <td>${item.hc}</td>
+                    <td>${item.vacantDate}</td>
+                    <td>${item.aging}</td>
+                    <td><button class="eye-btn" onclick="openSideDrawer('${item.vcode}')"><i class="fa-solid fa-eye"></i></button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterTableData() {
+            const query = document.getElementById('filterSearch').value.toLowerCase();
+            const filtered = globalVacancyData.filter(item => 
+                Object.values(item).some(val => String(val).toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        }
+
+        async function loadDeployerDropdowns() {
+            try {
+                const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=deployer_list`);
+                const data = await response.json();
+                
+                if (data && data.deployers && data.coordinators) {
+                    rawCoordinatorsList = data.coordinators;
+                    rawDeployersList = data.deployers;
+
+                    populateDropdownOptions('coordinator', rawCoordinatorsList);
+                    populateDropdownOptions('deployer', rawDeployersList);
+                }
+            } catch (e) {
+                console.error("Dropdown load error", e);
+            }
+        }
+
+        function populateDropdownOptions(type, items) {
+            const listEl = document.getElementById(type === 'coordinator' ? 'listCoordinator' : 'listDeployer');
+            let html = `<div class="dropdown-option-item" onclick="selectDropdownOption('${type}', '')">-- Clear Selection --</div>`;
+            html += items.map(item => `<div class="dropdown-option-item" onclick="selectDropdownOption('${type}', '${String(item).replace(/'/g, "\\'")}')">${item}</div>`).join('');
+            listEl.innerHTML = html;
+        }
+
+        function openDropdownList(type) {
+            document.querySelectorAll('.dropdown-options-list').forEach(el => el.classList.remove('show'));
+            const listEl = document.getElementById(type === 'coordinator' ? 'listCoordinator' : 'listDeployer');
+            listEl.classList.add('show');
+        }
+
+        function filterDropdownList(type) {
+            const inputId = type === 'coordinator' ? 'searchCoordinator' : 'searchDeployer';
+            const inputVal = document.getElementById(inputId).value.toLowerCase();
+            const sourceArray = type === 'coordinator' ? rawCoordinatorsList : rawDeployersList;
+            
+            const filtered = sourceArray.filter(item => String(item).toLowerCase().includes(inputVal));
+            const listEl = document.getElementById(type === 'coordinator' ? 'listCoordinator' : 'listDeployer');
+            
+            let html = `<div class="dropdown-option-item" onclick="selectDropdownOption('${type}', '')">-- Clear Selection --</div>`;
+            html += filtered.map(item => `<div class="dropdown-option-item" onclick="selectDropdownOption('${type}', '${String(item).replace(/'/g, "\\'")}')">${item}</div>`).join('');
+            listEl.innerHTML = html;
+            listEl.classList.add('show');
+        }
+
+        function selectDropdownOption(type, value) {
+            if (type === 'coordinator') {
+                document.getElementById('searchCoordinator').value = value;
+                document.getElementById('drawerCoordinator').value = value;
+                document.getElementById('listCoordinator').classList.remove('show');
+            } else {
+                document.getElementById('searchDeployer').value = value;
+                document.getElementById('drawerDeployedBy').value = value;
+                document.getElementById('listDeployer').classList.remove('show');
+            }
+        }
+
+        // Close dropdown lists when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.searchable-dropdown')) {
+                document.querySelectorAll('.dropdown-options-list').forEach(el => el.classList.remove('show'));
+            }
+        });
+
+        function openSideDrawer(vcode) {
+            const record = globalVacancyData.find(item => item.vcode === vcode);
+            if (!record) return;
+
+            document.getElementById('drawerVcodeText').innerText = record.vcode;
+            document.getElementById('drawerOutletText').innerText = record.outlet;
+            document.getElementById('drawerLastName').value = record.lastName;
+            document.getElementById('drawerFirstName').value = record.firstName;
+            document.getElementById('drawerMiddleName').value = record.middleName;
+            document.getElementById('drawerContact').value = record.contact;
+            document.getElementById('drawerOnboardDate').value = record.onboardDate ? new Date(record.onboardDate).toISOString().split('T')[0] : '';
+            document.getElementById('drawerReliever').value = record.reliever;
+            document.getElementById('drawerRemarks').value = record.remarks;
+            
+            document.getElementById('searchCoordinator').value = record.coordinator || '';
+            document.getElementById('drawerCoordinator').value = record.coordinator || '';
+            document.getElementById('searchDeployer').value = record.deployedBy || '';
+            document.getElementById('drawerDeployedBy').value = record.deployedBy || '';
+
+            document.getElementById('sideDrawer').classList.add('open');
+        }
+
+        function closeSideDrawer() {
+            document.getElementById('sideDrawer').classList.remove('open');
+        }
+
+        async function updateVacancyRecord() {
+            const rawDateInput = document.getElementById('drawerOnboardDate').value;
+            const formattedOnboardDate = formatStorageDate(rawDateInput);
+
+            const payload = {
+                vcode: document.getElementById('drawerVcodeText').innerText,
+                lastName: document.getElementById('drawerLastName').value,
+                firstName: document.getElementById('drawerFirstName').value,
+                middleName: document.getElementById('drawerMiddleName').value,
+                contact: document.getElementById('drawerContact').value,
+                onboardDate: formattedOnboardDate,
+                reliever: document.getElementById('drawerReliever').value,
+                remarks: document.getElementById('drawerRemarks').value,
+                coordinator: document.getElementById('drawerCoordinator').value,
+                deployedBy: document.getElementById('drawerDeployedBy').value
+            };
+
+            simulateProgress(async (finishProgress) => {
+                try {
+                    const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=vacancy_monitoring&action=updaterecord`, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    
+                    finishProgress();
+
+                    if (result.status === 'success') {
+                        showCustomAlert("Record Updated Successfully!", "SUCCESS", "success");
+                        closeSideDrawer();
+                        loadVacancyData();
+                    } else {
+                        showCustomAlert("Update failed: " + result.message, "UPDATE ERROR", "error");
+                    }
+                } catch (err) {
+                    console.error("Update error", err);
+                    finishProgress();
+                    showCustomAlert("An error occurred during update.", "NETWORK ERROR", "error");
+                }
+            }, "UPDATING SYSTEM DATABASE");
+        }
+    </script>
+</body>
+</html>

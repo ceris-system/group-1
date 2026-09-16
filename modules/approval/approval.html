@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Approval Module</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0f1d;
+            --panel-bg: rgba(10, 15, 29, 0.85);
+            --border-glow: rgba(0, 219, 255, 0.3);
+            --accent-cyan: #f6f8f8;
+            --accent-blue: #0291ff;
+            --accent: #00f3ff;
+            --text-main: #ffffff;
+            --text-muted: #8ca2c0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        body {
+            background-color: transparent;
+            color: var(--text-main);
+            padding: 20px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spinReverse {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+        }
+
+        .module-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-glow);
+            background: rgba(2, 6, 15, 0.5);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .client-name-display {
+            font-size: 0.95rem;
+            color: var(--accent);
+            letter-spacing: 1px;
+            font-weight: 700;
+            text-transform: uppercase;
+            background: rgba(0, 243, 255, 0.08);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            padding: 9px 15px;
+            border-radius: 6px;
+        }
+
+        .module-title-badge {
+            font-size: 0.95rem;
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 9px 15px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .search-box {
+            position: relative;
+            width: 260px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 38px;
+            background: rgba(0, 219, 255, 0.05);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 219, 255, 0.2);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent-cyan);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .total-hc-badge {
+            background: rgba(0, 219, 255, 0.1);
+            border: 1px solid var(--accent-cyan);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .futuristic-btn {
+            position: relative;
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .futuristic-btn:hover:not(:disabled) {
+            background: rgba(0, 219, 255, 0.15);
+            box-shadow: 0 0 15px rgba(0, 219, 255, 0.4);
+        }
+
+        .futuristic-btn:disabled {
+            border-color: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .approve-btn {
+            border-color: #00ff66;
+            color: #00ff66;
+            background: rgba(0, 255, 102, 0.05);
+        }
+
+        .approve-btn:hover:not(:disabled) {
+            background: rgba(0, 255, 102, 0.15);
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.4);
+        }
+
+        .futuristic-btn.spinning i {
+            transform: rotate(360deg);
+            transition: transform 0.6s ease;
+        }
+
+        .table-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgb(2, 6, 15);
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(0, 219, 255, 0.04);
+        }
+
+        input[type="checkbox"] {
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        #customAlertModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 15, 29, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 20000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .custom-alert-box {
+            width: 400px;
+            max-width: 90vw;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--accent, #00f3ff);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+            text-align: center;
+            animation: modalPopIn 0.3s ease;
+        }
+
+        @keyframes modalPopIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .custom-alert-icon {
+            font-size: 2.5rem;
+            color: var(--accent, #00f3ff);
+            margin-bottom: 15px;
+        }
+
+        .custom-alert-title {
+            color: var(--accent, #00f3ff);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .custom-alert-message {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .custom-alert-btn {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            color: #ffffff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(0, 219, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .custom-alert-btn:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 25px rgba(0, 219, 255, 0.7);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(2, 6, 15, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-glow);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="module-container">
+        <!-- Overlay Loader -->
+        <div id="loader" style="display:none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 29, 0.8); backdrop-filter: blur(5px); z-index: 999; text-align:center; padding-top:15vh;">
+            <div class="glass-modal" style="display: inline-block; width: 350px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 12px; padding: 25px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);">
+                <div style="position: relative; width: 100px; height: 100px; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center;">
+                    <div style="position: absolute; width: 100%; height: 100%; border: 2px dashed rgba(0, 243, 255, 0.3); border-radius: 50%; animation: spin 10s linear infinite;"></div>
+                    <div style="position: absolute; width: 80px; height: 80px; border: 3px solid transparent; border-top-color: var(--accent, #00f3ff); border-bottom-color: var(--accent, #00f3ff); border-radius: 50%; animation: spinReverse 2s linear infinite;"></div>
+                    <div style="position: absolute; width: 60px; height: 60px; border: 2px dotted rgba(255, 255, 255, 0.4); border-radius: 50%; animation: spin 4s linear infinite;"></div>
+                    <div style="width: 12px; height: 12px; background: #ffffff; border-radius: 50%; box-shadow: 0 0 15px var(--accent, #00f3ff);"></div>
+                </div>
+                <h4 id="loaderTitle" style="color: var(--accent, #00f3ff); margin: 0 0 15px 0; font-family: monospace; letter-spacing: 1px; font-size: 14px;">UPDATING SYSTEM DATABASE</h4>
+                <div class="progress-wrapper" style="background: rgba(255, 255, 255, 0.1); border-radius: 6px; overflow: hidden; height: 8px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div id="initialBar" class="progress-fill" style="background: var(--accent, #00f3ff); width: 0%; height: 100%; transition: width 0.2s ease; box-shadow: 0 0 10px var(--accent, #00f3ff);"></div>
+                </div>
+                <span id="initialPercent" style="font-size: 12px; color: var(--accent, #00f3ff); font-family: monospace;">0%</span>
+            </div>
+        </div>
+
+        <div class="module-header">
+            <div class="header-left">
+                <div class="client-name-display" id="clientNameDisplay" style="display: none;">---</div>
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="filterSearch" placeholder="Filter search..." onkeyup="filterTableData()">
+                </div>
+                <div class="module-title-badge">VACANCY PENDING FOR APPROVAL</div>
+            </div>
+            <div class="header-right">
+                <div class="total-hc-badge">TOTAL HC: <span id="totalHCDisplay">0.00</span></div>
+                <button class="futuristic-btn approve-btn" id="approveBtn" onclick="approveSelectedRecords()" disabled>
+                    <i class="fa-solid fa-check-double"></i> APPROVED
+                </button>
+                <button class="futuristic-btn" id="refreshBtn" onclick="loadApprovalData()">
+                    <i class="fa-solid fa-rotate"></i> REFRESH
+                </button>
+            </div>
+        </div>
+        <br>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" onclick="toggleSelectAll(this)"></th>
+                        <th>CLIENT</th>
+                        <th>VCODE</th>
+                        <th>OUTLET</th>
+                        <th>MEMBERS NAME</th>
+                        <th>HC</th>
+                        <th>DATE VACANT</th>
+                        <th>DATE ONBOARD</th>
+                        <th>AGING</th>
+                    </tr>
+                </thead>
+                <tbody id="approvalTableBody">
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--text-muted);">Loading approval records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Custom Popup Modal Alert Container -->
+    <div id="customAlertModal">
+        <div class="custom-alert-box">
+            <div class="custom-alert-icon" id="customAlertIcon"><i class="fa-solid fa-circle-info"></i></div>
+            <div class="custom-alert-title" id="customAlertTitle">SYSTEM NOTIFICATION</div>
+            <div class="custom-alert-message" id="customAlertMessage">Alert message goes here.</div>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">OK</button>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let sheetID = urlParams.get('sheetID');
+        
+        if (!sheetID) {
+            sheetID = "1GRNJbY1xoLuhrCVOduSo9DBACseMHJa9s5l5W4rOc5Y";
+        }
+
+        let globalApprovalData = [];
+        let isAdminUser = false;
+
+        window.onload = function() {
+            loadApprovalData();
+        };
+
+        function showCustomAlert(message, title = "SYSTEM NOTIFICATION", type = "info") {
+            const modal = document.getElementById('customAlertModal');
+            const msgEl = document.getElementById('customAlertMessage');
+            const titleEl = document.getElementById('customAlertTitle');
+            const iconEl = document.getElementById('customAlertIcon');
+
+            msgEl.innerText = message;
+            titleEl.innerText = title;
+            if (type === 'success') {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                iconEl.style.color = '#00f3ff';
+            } else if (type === 'error') {
+                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                iconEl.style.color = '#f52004';
+            } else {
+                iconEl.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+                iconEl.style.color = '#0291ff';
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeCustomAlert() {
+            document.getElementById('customAlertModal').style.display = 'none';
+        }
+
+        function setLoaderProgress(percent, titleText) {
+            const loader = document.getElementById('loader');
+            const initialBar = document.getElementById('initialBar');
+            const initialPercent = document.getElementById('initialPercent');
+            const loaderTitle = document.getElementById('loaderTitle');
+            
+            if (loader.style.display !== 'block') {
+                loader.style.display = 'block';
+            }
+            if (titleText) {
+                loaderTitle.innerText = titleText;
+            }
+            const clamped = Math.min(Math.max(percent, 0), 100);
+            initialBar.style.width = clamped + '%';
+            initialPercent.innerText = clamped + '%';
+        }
+
+        function hideLoader() {
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        async function loadApprovalData() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) refreshBtn.classList.add('spinning');
+
+            setLoaderProgress(20, "LOADING APPROVAL MODULE");
+
+            try {
+                const clientHeaderParam = urlParams.get('clientHeader') || "";
+                const searchFilterVal = document.getElementById('filterSearch').value || "";
+                
+                const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
+                    : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                
+                setLoaderProgress(50, "FETCHING SERVER DATA");
+                const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=for_approval&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
+                const jsonResponse = await response.json();
+
+                if (jsonResponse.error) {
+                    hideLoader();
+                    showCustomAlert("Error: " + jsonResponse.error, "DATABASE ERROR", "error");
+                    return;
+                }
+
+                setLoaderProgress(80, "PARSING RECORDS");
+                const rawClientName = jsonResponse.clientHeader || clientHeaderParam || "";
+                const cleanedClientName = rawClientName.replace(/systm|system/gi, "").trim();
+                document.getElementById('clientNameDisplay').innerText = cleanedClientName || "---";
+
+                const parentText = window.parent ? window.parent.document.body.innerText.toUpperCase() : "";
+                isAdminUser = jsonResponse.isAdmin || 
+                              cleanedClientName.toUpperCase().includes("ADMIN") || 
+                              parentText.includes("ADMIN");
+
+                const approveBtn = document.getElementById('approveBtn');
+                if (approveBtn) {
+                    approveBtn.disabled = !isAdminUser;
+                }
+
+                globalApprovalData = [];
+                const dataRows = jsonResponse.rows || [];
+
+                for (let i = 0; i < dataRows.length; i++) {
+                    const r = dataRows[i];
+                    const hcVal = parseFloat(r.colI) || 0; 
+
+                    globalApprovalData.push({
+                        client: r.colC || "",      
+                        vcode: r.vcode || "",       
+                        outlet: r.colG || "",      
+                        memberName: r.colAL || "", 
+                        hc: hcVal.toFixed(2),
+                        rawHc: hcVal,
+                        dateVacant: formatDisplayDate(r.colO), 
+                        dateOnboard: formatDisplayDate(r.colP),
+                        aging: r.colR || ""        
+                    });
+                }
+
+                renderTable(globalApprovalData);
+                setLoaderProgress(100, "COMPLETE");
+                setTimeout(() => hideLoader(), 300);
+            } catch (err) {
+                console.error("Failed to fetch approval records", err);
+                hideLoader();
+                showCustomAlert("Failed to load approval records from server.", "NETWORK ERROR", "error");
+            } finally {
+                if (refreshBtn) setTimeout(() => refreshBtn.classList.remove('spinning'), 600);
+            }
+        }
+
+        function formatDisplayDate(dateVal) {
+            if (!dateVal || isNaN(Date.parse(dateVal))) return "---";
+            const d = new Date(dateVal);
+            return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('approvalTableBody');
+            let totalHC = 0;
+            data.forEach(item => {
+                totalHC += item.rawHc;
+            });
+            document.getElementById('totalHCDisplay').innerText = totalHC.toFixed(2);
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No records found matching criteria.</td></tr>`;
+                document.getElementById('selectAllCheckbox').checked = false;
+                return;
+            }
+
+            tbody.innerHTML = data.map((item) => `
+                <tr>
+                    <td><input type="checkbox" class="row-checkbox" data-vcode="${item.vcode}" onclick="updateSelectAllState()"></td>
+                    <td>${item.client}</td>
+                    <td>${item.vcode}</td>
+                    <td>${item.outlet}</td>
+                    <td>${item.memberName}</td>
+                    <td>${item.hc}</td>
+                    <td>${item.dateVacant}</td>
+                    <td>${item.dateOnboard}</td>
+                    <td>${item.aging}</td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('selectAllCheckbox').checked = false;
+        }
+
+        function filterTableData() {
+            const query = document.getElementById('filterSearch').value.toLowerCase();
+            const filtered = globalApprovalData.filter(item => 
+                Object.values(item).some(val => String(val).toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        }
+
+        function toggleSelectAll(selectAll) {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+
+        function updateSelectAllState() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            const selectAll = document.getElementById('selectAllCheckbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            selectAll.checked = allChecked && checkboxes.length > 0;
+        }
+
+        async function approveSelectedRecords() {
+            if (!isAdminUser) {
+                showCustomAlert("Action restricted to Admin users only.", "ACCESS DENIED", "error");
+                return;
+            }
+
+            const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                showCustomAlert("Please select at least one record to approve.", "SELECTION REQUIRED", "error");
+                return;
+            }
+
+            const selectedVcodes = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-vcode'));
+            const totalCount = selectedVcodes.length;
+
+            setLoaderProgress(5, `0 OUT OF ${totalCount} APPROVED`);
+
+            try {
+                const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
+                    : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                
+                let successCount = 0;
+                for (let i = 0; i < selectedVcodes.length; i++) {
+                    const currentVcode = selectedVcodes[i];
+                    const currentDisplayNum = i + 1;
+                    
+                    setLoaderProgress(
+                        Math.round((currentDisplayNum / totalCount) * 90), 
+                        `${currentDisplayNum} OUT OF ${totalCount} APPROVED (MOVE TO HR EMPLOC)`
+                    );
+
+                    const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=for_approval&action=approve`, {
+                        method: 'POST',
+                        body: JSON.stringify({ vcodes: [currentVcode] })
+                    });
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        successCount++;
+                    }
+                }
+
+                setLoaderProgress(100, "COMPLETED TRANSFER");
+                setTimeout(() => {
+                    hideLoader();
+                    showCustomAlert(`Successfully approved and transferred ${successCount} of ${totalCount} record(s).`, "SUCCESS", "success");
+                    loadApprovalData(); // Auto-refreshes data table instantly
+                }, 400);
+
+            } catch (err) {
+                console.error("Approval error", err);
+                hideLoader();
+                showCustomAlert("An error occurred during approval processing.", "NETWORK ERROR", "error");
+            }
+        }
+    </script>
+</body>
+</html>

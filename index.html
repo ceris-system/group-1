@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>C.E.R.I.S SYSTEM</title>
+    <link rel="icon" type="image/png" href="BETA.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Dynamic background styling for the whole page body */
+        body {
+            background-color: #ffffff !important;
+            transition: background 0.3s ease;
+        }
+
+        body.has-video-bg {
+            background-color: transparent !important;
+        }
+
+        #bg-video {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -1;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* --- Sci-Fi HUD Tech Ring Loader (Inspired by reference) --- */
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 6, 15, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .sci-fi-loader {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Outer segmented crosshair ring */
+        .hud-ring-outer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px dashed rgba(0, 219, 255, 0.4);
+            border-radius: 50%;
+            animation: hudSpinCW 8s linear infinite;
+        }
+
+        /* Middle rotating tech dial with gaps */
+        .hud-ring-middle {
+            position: absolute;
+            width: 75%;
+            height: 75%;
+            border: 3px solid transparent;
+            border-top: 3px solid #00dbff;
+            border-bottom: 3px solid #00dbff;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0, 219, 255, 0.5);
+            animation: hudSpinCCW 2.5s linear infinite;
+        }
+
+        /* Inner targeting reticle */
+        .hud-ring-inner {
+            position: absolute;
+            width: 45%;
+            height: 45%;
+            border: 2px solid rgba(2, 145, 255, 0.5);
+            border-left: 2px solid #ffffff;
+            border-right: 2px solid #ffffff;
+            border-radius: 50%;
+            animation: hudSpinCW 1.2s linear infinite;
+        }
+
+        /* Glowing energetic core */
+        .hud-core {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #ffffff, 0 0 30px #00dbff, 0 0 50px #0291ff;
+            animation: corePulse 1s ease-in-out infinite alternate;
+        }
+
+        /* HUD Scanner Text */
+        #loadingText {
+            margin-top: 30px;
+            color: #00dbff;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(0, 219, 255, 0.8);
+            text-transform: uppercase;
+            animation: textGlitch 2s infinite;
+        }
+
+        /* Keyframes */
+        @keyframes hudSpinCW {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes hudSpinCCW {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @keyframes corePulse {
+            0% { transform: scale(0.7); opacity: 0.5; }
+            100% { transform: scale(1.3); opacity: 1; }
+        }
+
+        @keyframes textGlitch {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="has-video-bg">
+
+    <video autoplay muted loop id="bg-video"><source src="bg.mp4" type="video/mp4"></video>
+
+    <!-- Sci-Fi HUD Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="sci-fi-loader">
+            <div class="hud-ring-outer"></div>
+            <div class="hud-ring-middle"></div>
+            <div class="hud-ring-inner"></div>
+            <div class="hud-core"></div>
+        </div>
+        <div id="loadingText">ACCESSING...</div>
+    </div>
+
+    <div class="flip-container" id="authContainer">
+        <div class="card-inner" id="cardInner">
+            <div class="glass-card login-face">
+                <div class="logo-container"><img src="logo.png" alt="C.E.R.I.S"></div>
+                <h2>LOGIN</h2>
+                <div class="input-group">
+                    <p class="field-header">Username</p>
+                    <input type="text" id="userInput" placeholder="Identity code">
+                </div>
+                <div class="input-group">
+                    <p class="field-header">Access Key</p>
+                    <div class="password-wrapper">
+                        <input type="password" id="passInput" placeholder="••••••••">
+                        <i class="fa-solid fa-eye toggle-password" style="color: rgb(47, 5, 235);" onclick="togglePass('passInput')"></i>
+                    </div>
+                </div>
+                <button onclick="handleAction('login')">VERIFY</button>
+            </div>
+
+            <div class="glass-card register-face">
+                <div class="logo-container"><img src="logo.png" alt="C.E.R.I.S"></div>
+                <h2>SECURE ACCOUNT</h2>
+                <p style="font-size: 0.8rem; text-align: center; opacity: 0.7; margin-bottom: 20px;">Default password detected. Set a new one.</p>
+                <div class="input-group">
+                    <p class="field-header">New Password</p>
+                    <div class="password-wrapper">
+                        <input type="password" id="newPassInput" placeholder="Min 8 characters">
+                        <i class="fa-solid fa-eye toggle-password" style="color: rgb(0, 145, 255);" onclick="togglePass('newPassInput')"></i>
+                    </div>
+                </div>
+                <button onclick="handleAction('updatePassword')">UPDATE & ENTER</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusModal" class="modal-overlay">
+        <div class="glass-card modal-content">
+            <div id="modalIconContainer"></div>
+            <h2 id="modalTitle">NOTIFICATION</h2>
+            <p id="modalMessage"></p>
+            <button onclick="closeModal()" class="modal-btn">CONFIRM</button>
+        </div>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+        <header class="dash-header">
+            <span class="system-title" id="clientHeader">LOADING...</span>
+            <nav class="icon-nav" id="mainNav">
+                <!-- Announcement is always visible -->
+                <!-- Conditional buttons based on user session bridges -->
+                <div class="nav-btn" data-bridge="plantilla" onclick="openModule('plantilla')" style="display: none;">📋<small>Plantilla</small></div>
+<div class="nav-btn" data-bridge="vacancy_monitoring" onclick="openModule('vacancy_monitoring')" style="display: none;">🔭<small>Vacancy Monitoring</small></div>
+<div class="nav-btn" data-bridge="hr_emploc_monitoring" onclick="openModule('hr_emploc_monitoring')" style="display: none;">👥<small>Hr Emploc Monitoring</small></div>
+<div class="nav-btn" data-bridge="approval" onclick="openModule('approval')" style="display: none;">✅<small>FOR APPROVAL</small></div>
+              
+            </nav>
+            <div class="user-session-wrapper">
+                <span id="displayUsername" class="tactical-user-label"></span>
+                <button class="logout-pill" onclick="logoutSystem()">
+                    <i class="fa fa-sign-out" aria-hidden="true"></i>
+                </button>
+            </div>
+        </header>
+
+        <main class="glass-sheet">
+            <section class="main-body">
+                <div id="tableView"></div>
+            </section>
+            <tbody id="bufferTableBody"></tbody>
+            <tfoot id="bufferTableFoot"></tfoot>
+        </main>
+    </div>
+
+    <script>
+        // Configuration
+        window.API = "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+        
+        // Local UI Logic
+        function togglePass(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === "password" ? "text" : "password";
+        }
+
+        function closeModal() {
+            document.getElementById('statusModal').style.display = 'none';
+        }
+
+        // Background Video Controller (toggles video element visibility and shifts body background to white)
+        function setBackgroundVideoState(show) {
+            const bgVideo = document.getElementById('bg-video');
+            const bodyElement = document.body;
+            
+            if (bgVideo) {
+                bgVideo.style.display = show ? 'block' : 'none';
+                if (show) {
+                    bodyElement.classList.add('has-video-bg');
+                    bgVideo.play().catch(e => console.log("Autoplay prevented:", e));
+                } else {
+                    bodyElement.classList.remove('has-video-bg');
+                    bgVideo.pause();
+                }
+            }
+        }
+
+        // Loader functions called by script.js
+        function showSeaWaveLoader(message = "ACCESSING...") {
+            const loader = document.getElementById('loadingOverlay');
+            const textElement = document.getElementById('loadingText');
+            if (textElement) textElement.innerText = message;
+            if (loader) loader.style.display = 'flex';
+        }
+
+        function hideSeaWaveLoader() {
+            const loader = document.getElementById('loadingOverlay');
+            if (loader) loader.style.display = 'none';
+        }
+
+        // Function to update nav buttons visibility based on sessionBridges
+        function updateNavButtonsVisibility() {
+            const navButtons = document.querySelectorAll('#mainNav .nav-btn');
+            navButtons.forEach(btn => {
+                const bridgeKey = btn.getAttribute('data-bridge');
+                if (bridgeKey === 'announcement') {
+                    btn.style.display = 'flex'; // Always show announcement
+                    return;
+                }
+                
+                // Show button ONLY if the corresponding spreadsheet ID exists and is not empty
+                if (window.sessionBridges && window.sessionBridges[bridgeKey] && window.sessionBridges[bridgeKey].trim() !== "") {
+                    btn.style.display = 'flex';
+                } else {
+                    btn.style.display = 'none';
+                }
+            });
+        }
+
+        // Module Loader via Iframe Bridge
+        async function openModule(folderName) {
+            const container = document.getElementById('tableView');
+            const titleElement = document.getElementById('activeModuleTitle');
+            if (titleElement) titleElement.innerText = folderName.replace(/_/g, ' ').toUpperCase();
+
+            // Toggle background video: ON only for announcement, OFF (pure white background) for all other modules
+            if (folderName === 'announcement') {
+                setBackgroundVideoState(true);
+                container.innerHTML = `<iframe src="modules/announcement/announcement.html" style="width:100%; height:100%; border:none;"></iframe>`;
+                return;
+            } else {
+                setBackgroundVideoState(false);
+            }
+
+            const btn = document.querySelector(`[data-bridge="${folderName}"]`);
+            const bridgeKey = btn ? btn.getAttribute('data-bridge') : folderName;
+            const targetSheetID = window.sessionBridges ? window.sessionBridges[bridgeKey] : "";
+            
+            // GRAB THE CURRENT CLIENT HEADER TEXT FROM THE PAGE DISPLAY
+            const currentClientHeader = document.getElementById('clientHeader').innerText || "";
+            
+            // Ensures the directory path matches the module identifier exactly
+            const iframeUrl = `modules/${folderName}/${folderName}.html?sheetID=${targetSheetID}&user=${window.sessionUser}&clientHeader=${encodeURIComponent(currentClientHeader)}`;
+            container.innerHTML = `<iframe src="${iframeUrl}" style="width:100%; height:100%; border:none;"></iframe>`;
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

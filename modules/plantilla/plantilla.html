@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf-plugin-autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --glass: rgba(255, 255, 255, 0.05); --accent: #00e5ff; --neon-red: #ff0000; --neon-yellow: white; }
+        
+        body { 
+            font-family: 'Roboto Mono', monospace; 
+            background: transparent; margin: 0; padding: 0; overflow: hidden; color: #fff;
+        }
+
+        .module-header-row {
+            padding: 5px 20px;
+            display: flex; align-items: center; gap: 15px;
+            border-bottom: 1px solid #333; height: 50px; box-sizing: border-box;
+        }
+
+        .module-title { color: black; font-size: 14px; white-space: nowrap; margin: 0; }
+
+        .search-box {
+            background: rgba(255,255,255,0.05); border: 1px solid #444;
+            padding: 6px 12px; border-radius: 4px; color: rgb(5, 5, 5);
+            width: 180px; font-size: 13px; font-weight: bold; outline: none;
+        }
+
+        .hc-counter {
+            background: transparent; color: rgb(7, 7, 7); 
+            font-weight: bold; font-size: 25px; padding: 4px 10px;
+            display: inline-flex; align-items: center;
+        }
+
+        .button-group { display: flex; gap: 5px; flex: 1; justify-content: flex-end; }
+
+        .action-btn {
+            background: transparent; border: 1px solid #444; color: #210681;
+            padding: 5px 10px; border-radius: 4px; cursor: pointer;
+            font-size: 10px; display: flex; align-items: center; gap: 5px;
+            font-weight: bold; text-transform: uppercase; transition: 0.2s;
+        }
+        .action-btn:hover { background: #f7f4f400; color: #000; }
+
+        #tableContainer { height: calc(100vh - 50px); overflow: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { 
+            position: sticky; top: 0; background: #000; 
+            padding: 12px; text-align: left; border-bottom: 2px solid #333;
+            z-index: 10; font-size: 11px; color: #fff;
+        }
+        tbody td { padding: 10px; border-bottom: 1px solid #000; border-top: 1px solid #eee; font-size: 12px; color: black; font-weight: bold;}
+
+        /* --- FIXED SIDE PANEL CSS --- */
+        .side-panel {
+            position: fixed; 
+            top: 0; 
+            right: -100%;
+            width: 420px; 
+            max-width: 90vw;
+            height: 100vh;
+            background: #000; 
+            box-shadow: -10px 0 30px rgba(0,0,0,0.9);
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10000; 
+            color: #f34343; 
+            overflow-y: auto; 
+            overflow-x: hidden;
+            border-left: 1px solid #333; 
+            box-sizing: border-box;
+            
+            /* Adds breathing room at the bottom so buttons never get cut off */
+            padding-bottom: 80px; 
+
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-red) transparent;
+        }
+
+        .side-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .side-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .side-panel::-webkit-scrollbar-thumb {
+            background-color: var(--neon-red);
+            border-radius: 10px;
+        }
+        .side-panel.open { 
+            right: 0; 
+        }
+        /* --- END OF FIXED SIDE PANEL CSS --- */
+
+        .panel-header-top {
+            padding: 20px 45px 20px 20px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px 10px;
+            border-bottom: 2px solid var(--neon-red); box-sizing: border-box;
+        }
+        .header-item { min-width: 0; overflow: hidden; }
+        .header-item .label { color: var(--neon-red); font-size: 11px; display: block; margin-bottom: 3px; text-transform: uppercase; }
+        .header-item .value { color: var(--neon-yellow); font-size: 12px; text-transform: uppercase; word-break: break-word; overflow-wrap: break-word; }
+        .header-item.full-name-header { grid-column: span 2; }
+        .header-item.client-header { grid-column: span 2; }
+
+        .panel-body { padding: 5px; box-sizing: border-box; }
+
+        .detail-section {
+            border: 1px solid #333; border-radius: 8px;
+            padding: 5px; margin-bottom: 5px; box-sizing: border-box;
+        }
+        .section-title {
+            color: var(--neon-red); font-size: 12px; margin-bottom: 15px;
+            display: flex; align-items: center; gap: 10px; text-transform: uppercase;
+        }
+        .detail-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1px 5px; 
+            box-sizing: border-box;
+        }
+        .info-box {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .info-box .label { color: var(--neon-red); font-size: 10px; margin-bottom: 3px; text-transform: uppercase; }
+        .full-width {
+            grid-column: span 2;
+        }
+        .info-box .value { color: var(--neon-yellow); font-size: 12px; display: block; word-break: break-word; text-transform: uppercase; }
+
+        .update-box { background: rgba(255,255,255,0.02); padding: 5px; border-radius: 8px; margin-top: 5px; text-align: center; }
+        .input-dark {
+            width: 100%; background: #111; border: 1px solid #444; 
+            color: #fff; padding: 8px; font-family: inherit; font-size: 12px; margin-top: 5px;
+            box-sizing: border-box; text-align: left;
+        }
+        .input-dark::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        .update-btn {
+            width: fit-content;
+            display: block;
+            margin: 15px auto 0 auto;
+            padding: 8px 20px;
+            background: #3300ff; 
+            color: white;
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer;
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            font-size: 11px;
+        }
+
+        .close-btn { 
+            position: absolute; right: 15px; 
+            background: transparent; border: none; color: white; 
+            font-size: 24px; cursor: pointer; z-index: 11;
+            line-height: 1;
+        }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+            margin: auto;
+            box-sizing: border-box;
+        }
+        .progress-wrapper { background: #111; height: 6px; border-radius: 3px; margin: 15px 0; overflow: hidden; }
+        .progress-fill { background: var(--accent); width: 0%; height: 100%; transition: width 0.2s ease; box-shadow: 0 0 10px var(--accent); }
+
+        .dropdown { position: relative; }
+        .dropdown-content {
+            display: none; position: absolute; right: 0; background: #000;
+            min-width: 120px; border: 1px solid #444; border-radius: 4px; z-index: 1001;
+        }
+        .dropdown-content a { color: white; padding: 8px 12px; text-decoration: none; display: block; font-size: 10px; }
+        .dropdown-content a:hover { background: var(--accent); color: #000; }
+        .dropdown:hover .dropdown-content { display: block; }
+
+        @media screen and (max-width: 600px) {
+            .side-panel {
+                max-width: 100%;
+            }
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+            .full-width {
+                grid-column: span 1;
+            }
+        }
+
+        #vacancyList, #manningDataList {
+            scrollbar-width: thin;
+            scrollbar-color: #ccc transparent;
+        }
+        #vacancyList::-webkit-scrollbar, #manningDataList::-webkit-scrollbar {
+            width: 6px;
+        }
+        #vacancyList::-webkit-scrollbar-thumb, #manningDataList::-webkit-scrollbar-thumb {
+            background-color: #ccc;
+            border-radius: 10px;
+        }
+
+        .glass-modal::before {
+            content: " ";
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        #silSystemModal th:first-child, 
+        #silSystemModal td:first-child {
+            min-width: 120px;
+            max-width: 180px;
+            word-break: break-word;
+        }
+
+        #silSystemModal table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto !important;
+        }
+
+        #silSystemModal th {
+            background: #ffffff !important;
+            color: #000000 !important;
+            border-bottom: 2px solid #000000 !important;
+            font-weight: bold;
+        }
+
+        #silSystemModal th, 
+        #silSystemModal td {
+            padding: 12px 15px;
+            text-align: left;
+            white-space: nowrap;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #silSystemModal td {
+            color: #000;
+        }
+
+        #silSystemModal th:nth-child(7), #silSystemModal td:nth-child(7),
+        #silSystemModal th:nth-child(8), #silSystemModal td:nth-child(8) {
+            text-align: right;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #silSystemModal, #silSystemModal * {
+                visibility: visible;
+            }
+            #silSystemModal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                background: white !important;
+                display: block !important;
+                overflow: visible !important;
+            }
+            #silSystemModal .glass-modal {
+                border: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+            #silSystemModal .glass-modal::before {
+                display: none;
+            }
+            #silSystemModal select, 
+            #silSystemModal input, 
+            #silSystemModal button {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="module-header-row">
+    <h1 class="module-title" style="font-size: 25px;">PLANTILLA</h1>
+
+    <div class="search-container">
+        <input type="text" 
+       id="searchInput" 
+       class="search-box" 
+       placeholder="FILTER SEARCH..." 
+       style="width: 200px;" 
+       oninput="filterTable()">
+    </div>
+
+    <div class="hc-counter">HC: <span id="totalHC">0</span></div>
+
+    <div class="button-group">
+        <!-- SEPARATE ICON BUTTON 2: +-5% BUFFER -->
+        <button class="action-btn" id="buffer-5pct-btn" onclick="runBufferPlusMinus()">
+            <i class="fas fa-sliders-h"></i> +-5% BUFFER
+        </button>
+        <!-- SEPARATE ICON BUTTON 3: VCODE VARIANCE -->
+        <button class="action-btn" id="vcode-variance-btn" onclick="runVcodeVariance()">
+            <i class="fas fa-chart-line"></i> VCODE VARIANCE
+        </button>
+        <button class="action-btn" onclick="checkDuplicates()"><i class="fas fa-exclamation-triangle"></i> CHECK DUPLICATES</button>
+        <button class="action-btn" onclick="runSIL()"><i class="fas fa-clock"></i> SIL</button>
+        <button class="action-btn" onclick="openPlantillaSummary()"><i class="fas fa-chart-pie"></i> PLANTILLA SUMMARY</button>
+        <button class="action-btn" onclick="openVcodeMasterlist()"><i class="fas fa-list-ol"></i> VCODE MASTERLIST</button>
+        <button class="action-btn" onclick="runNewlyHired()"><i class="fas fa-user-plus"></i> NEWLY HIRED</button>
+        <button class="action-btn" onclick="triggerRefresh()"><i class="fas fa-sync-alt"></i> REFRESH</button>
+        <div class="dropdown">
+            <button class="action-btn"><i class="fas fa-file-download"></i> DOWNLOAD</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="runExport('csv')">CSV FILE</a>
+                <a href="#" onclick="runExport('xlsx')">EXCEL FILE</a>
+                <a href="#" onclick="runExport('pdf')">PDF DOCUMENT</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loader" style="text-align:center; padding-top:15vh;">
+    <div class="glass-modal" style="display: inline-block; width: 350px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 12px; padding: 25px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);">
+        
+        <div style="position: relative; width: 100px; height: 100px; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 100%; height: 100%; border: 2px dashed rgba(0, 243, 255, 0.3); border-radius: 50%; animation: spin 10s linear infinite;"></div>
+            <div style="position: absolute; width: 80px; height: 80px; border: 3px solid transparent; border-top-color: var(--accent, #00f3ff); border-bottom-color: var(--accent, #00f3ff); border-radius: 50%; animation: spinReverse 2s linear infinite;"></div>
+            <div style="position: absolute; width: 60px; height: 60px; border: 2px dotted rgba(255, 255, 255, 0.4); border-radius: 50%; animation: spin 4s linear infinite;"></div>
+            <div style="width: 12px; height: 12px; background: #ffffff; border-radius: 50%; box-shadow: 0 0 15px var(--accent, #00f3ff);"></div>
+        </div>
+
+        <h4 id="loaderTitle" style="color: var(--accent, #00f3ff); margin: 0 0 15px 0; font-family: monospace; letter-spacing: 1px; font-size: 14px;">UPDATING SYSTEM DATABASE</h4>
+        
+        <div class="progress-wrapper" style="background: rgba(255, 255, 255, 0.1); border-radius: 6px; overflow: hidden; height: 8px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.05);">
+            <div id="initialBar" class="progress-fill" style="background: var(--accent, #00f3ff); width: 0%; height: 100%; transition: width 0.2s ease; box-shadow: 0 0 10px var(--accent, #00f3ff);"></div>
+        </div>
+        
+        <span id="initialPercent" style="font-size: 12px; color: var(--accent, #00f3ff); font-family: monospace;">0%</span>
+    </div>
+</div>
+
+<style>
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+@keyframes spinReverse {
+    0% { transform: rotate(360deg); }
+    100% { transform: rotate(0deg); }
+}
+</style>
+
+<div id="tableContainer" style="display:none;">
+    <table>
+        <thead>
+            <tr>
+                <th>VCODE</th><th>EMPLOC</th><th>MEMBER NAME</th><th>POSITION</th>
+                <th>OUTLET</th><th>HC</th><th>DATE</th><th>STATUS</th>
+                <th style="width: 40px; text-align: center;">VIEW</th>
+            </tr>
+        </thead>
+        <tbody id="plantillaData"></tbody>
+    </table>
+</div>
+
+<div id="sidePanel" class="side-panel">
+    <button class="close-btn" onclick="closePanel()">&times;</button>
+    <div id="panelContent"></div>
+</div>
+
+<div id="statusModal" class="modal-overlay">
+    <div class="glass-modal">
+        <h4 id="modalTitle" style="margin:0; text-transform: uppercase;">UPDATING SYSTEM DATABASE</h4>
+        <p id="modalMsg" style="font-size: 11px; color: #888; margin: 10px 0;">Synchronizing...</p>
+        <div class="progress-wrapper"><div id="progressBar" class="progress-fill"></div></div>
+        <div id="percentLabel" style="font-size: 14px; color: var(--accent); font-weight: bold; margin-bottom: 10px;">0%</div>
+        <button id="modalCloseBtn" class="action-btn" style="display:none; margin: 0 auto;" onclick="closeModal()">OK</button>
+    </div>
+</div>
+
+<div id="duplicateModal" class="modal-overlay" style="display: none; justify-content: center; align-items: center;">
+    <div class="glass-modal" style="width: 90%; max-width: 700px; height: 75vh; display: flex; flex-direction: column; padding: 20px; background: #fff; color: #000; border: 2px solid #000;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: #000;">VCODE DUPLICATE CHECKER</h2>
+            <button class="action-btn" onclick="document.getElementById('duplicateModal').style.display='none'" style="border-color:red; color:red; background:transparent; font-size: 10px;">CLOSE [X]</button>
+        </div>
+        <div style="flex: 1; overflow-y: auto; border: 1px solid #000; background: #fff;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: #fff; color: #000; z-index: 5;">
+                    <tr style="font-size: 10px;">
+                        <th style="padding: 10px; text-align: left; background: #fff; color: #000;">VCODE</th>
+                        <th style="padding: 10px; text-align: left; background: #fff; color: #000;">FULLNAME</th>
+                        <th style="padding: 10px; text-align: left; background: #fff; color: #000;">OUTLET</th>
+                        <th style="padding: 10px; text-align: center; background: #fff; color: #000;">HC</th>
+                    </tr>
+                </thead>
+                <tbody id="duplicateTableBody" style="font-size: 11px; color: #000;"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="summaryModal" class="modal-overlay" style="display: none; justify-content: center; align-items: center;">
+    <div class="glass-modal" style="width: 90%; max-width: 950px; height: 80vh; display: flex; flex-direction: column; padding: 20px; background: #fff; color: #000; border: 2px solid #000;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 14px; letter-spacing: 1px; text-transform: uppercase;">PLANTILLA SUMMARY</h2>
+            <button class="action-btn" onclick="document.getElementById('summaryModal').style.display='none'" style="border-color:red; color:red; background:transparent; font-size: 10px;">CLOSE [X]</button>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; border: 1px solid #000;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: #fff; color: #000; z-index: 5;">
+                    <tr style="font-size: 10px;">
+                        <th style="padding: 10px; text-align: left; background: #fff; color: #000;">POSITION</th>
+                        <th style="padding: 10px; text-align: center; background: #fff; color: #000;">REQUIRED HC</th>
+                        <th style="padding: 10px; text-align: center; background: #fff; color: #000;">ONBOARD</th>
+                        <th style="padding: 10px; text-align: center; background: #fff; color: #000;">GAP</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTableBody" style="font-size: 11px; color: #000;"></tbody>
+                <tfoot style="position: sticky; bottom: 0; background: #f1f1f1; border-top: 2px solid #000; font-weight: bold; font-size: 11px;">
+                    <tr>
+                        <td style="padding: 10px; text-align: right;">GRAND TOTAL:</td>
+                        <td id="sumTotalReq" style="padding: 10px; text-align: center;">0.00</td>
+                        <td id="sumTotalOnboard" style="padding: 10px; text-align: center;">0.00</td>
+                        <td id="sumTotalGap" style="padding: 10px; text-align: center; color: red;">0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="silSystemModal" class="modal-overlay" style="display: none; justify-content: center; align-items: center;">
+    <div class="glass-modal" style="width: 95%; max-width: 1200px; height: 85vh; display: flex; flex-direction: column; padding: 0; background: #fff; color: #000; border: 2px solid #000; overflow: hidden;">
+        
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 20px; border-bottom: 2px solid #000; background: #f8f8f8;">
+            <h2 style="margin: 0; font-size: 16px; font-weight: bold; margin-right: 15px;">SIL SYSTEM</h2>
+            
+            <select id="silMonth" class="search-box" style="width: 120px;" onchange="filterSilTable()">
+                <option value="ALL">ALL MONTHS</option>
+                <option value="JANUARY">JANUARY</option>
+                <option value="FEBRUARY">FEBRUARY</option>
+                <option value="MARCH">MARCH</option>
+                <option value="APRIL">APRIL</option>
+                <option value="MAY">MAY</option>
+                <option value="JUNE">JUNE</option>
+                <option value="JULY">JULY</option>
+                <option value="AUGUST">AUGUST</option>
+                <option value="SEPTEMBER">SEPTEMBER</option>
+                <option value="OCTOBER">OCTOBER</option>
+                <option value="NOVEMBER">NOVEMBER</option>
+                <option value="DECEMBER">DECEMBER</option>
+            </select>
+
+            <select id="silYear" class="search-box" style="width: 100px;" onchange="filterSilTable()">
+                <option value="ALL">ALL YEARS</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+            </select>
+
+            <input type="text" 
+       id="silSearch" 
+       class="search-box" 
+       placeholder="FILTER SEARCH..." 
+       style="width: 200px; background: white; color: black; border: 1px solid #000;" 
+       oninput="filterSilTable()">
+
+            <div style="background: #000; padding: 5px 15px; border: 1px solid #444; border-radius: 4px; min-width: 160px;">
+                <span style="font-size: 9px; color: #00e5ff; display: block; font-weight: bold;">TOTAL AMOUNT</span>
+                <span id="silTotalDisplay" style="font-size: 15px; color: #fff; font-family: 'Roboto Mono', monospace;">₱ 0.00</span>
+            </div>
+
+            <div style="display: flex; gap: 5px; flex: 1; justify-content: flex-end;">
+                <button class="action-btn" onclick="refreshSil()"><i class="fas fa-sync-alt"></i> REFRESH</button>
+                <button class="action-btn" onclick="printSil()"><i class="fas fa-print"></i> PRINT</button>
+                <button class="action-btn" onclick="downloadSil()"><i class="fas fa-file-download"></i> DOWNLOAD</button>
+                <button class="action-btn" onclick="closeSilSystemModal()" style="border-color: red; color: red;">CLOSE [X]</button>
+            </div>
+        </div>
+
+        <div style="flex: 1; overflow: auto; background: #fff;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: #fff; color: #000; z-index: 10;">
+                    <tr style="font-size: 11px;">
+                        <th>CLIENT</th>
+                        <th>EMPLOC</th>
+                        <th>FULLNAME</th>
+                        <th>POSITION</th>
+                        <th>OUTLET</th>
+                        <th>DATE HIRED</th>
+                        <th>RATE</th>
+                        <th>AMOUNT</th>
+                    </tr>
+                </thead>
+                <tbody id="silTableBody" style="font-size: 12px; color: #000;"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="vcodeMasterlistModal" class="modal-overlay" style="display: none; justify-content: center; align-items: center;">
+    <div class="glass-modal" style="width: 90%; max-width: 1100px; height: 80vh; display: flex; flex-direction: row; padding: 0; background: #fff; color: #000; border: 2px solid #000; overflow: hidden; position: relative;">
+        
+        <div style="flex: 1; display: flex; flex-direction: column; padding: 20px; border-right: 1px solid #ddd;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <h2 style="margin: 0; font-size: 16px; letter-spacing: 1px; color: #000;">VCODE MASTERLIST</h2>
+                    <div style="font-size: 12px; border: 1px solid #000; background: #fff; color: #000; padding: 2px 8px; font-weight: bold;">
+                        TOTAL HC: <span id="vcodeCount">0.00</span>
+                    </div>
+                </div>
+                <button class="action-btn" onclick="closeVcodeModal()" style="border-color: #ff0000; color: #ff0000; background: transparent; height: 25px; padding: 0 10px;">CLOSE [X]</button>
+            </div>
+
+            <div style="position: relative; margin-bottom: 15px;">
+                <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #666;"></i>
+                <input type="text" id="vcodeSearch" class="search-box" placeholder="FILTER MASTERLIST..." 
+                       style="width: 100%; padding-left: 35px; background: #f9f9f9; border: 1px solid #ccc; color: #000; box-sizing: border-box;" 
+                       onkeyup="filterVcodeModal()">
+            </div>
+
+            <div style="flex: 1; overflow-y: auto; border: 1px solid #000; background: #fff;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #fff; z-index: 5;">
+                        <tr style="font-size: 10px; color: #000;">
+                            <th style="padding: 10px; text-align: left; background: #fff; color: #000;">VCODE</th>
+                            <th style="padding: 10px; text-align: left; background: #fff; color: #000;">OUTLET</th>
+                            <th style="padding: 10px; text-align: left; background: #fff; color: #000;">POSITION</th>
+                            <th style="padding: 10px; text-align: center; background: #fff; color: #000;">HC</th>
+                            <th style="padding: 10px; text-align: center; background: #fff; color: #000;">VIEW</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vcodeModalBody" style="color: #000; font-size: 11px;"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="vcodeInternalPanel" style="width: 0; background: #f4f4f4; transition: 0.3s; overflow: hidden; display: flex; flex-direction: column; border-left: 0 solid #000;">
+            <div style="min-width: 300px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; font-size: 14px; color: #000; border-bottom: 2px solid var(--accent);">RECORD DETAILS</h3>
+                    <button onclick="toggleInternalPanel(false)" style="background: none; border: none; font-size: 20px; cursor: pointer;">&times;</button>
+                </div>
+                <div id="internalPanelContent">
+                    <p style="color: #666; font-size: 11px;">Select a record to view full data parameters.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- +-5% BUFFER MODAL -->
+<div id="bufferModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; width:95%; max-height:90vh; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="background:#111; color:#fff; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; font-size:16px; letter-spacing:1px;">+-5% BUFFER SYSTEM</h3>
+            <button onclick="document.getElementById('bufferModal').style.display='none'" style="background:#d9534f; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">CLOSE [X]</button>
+        </div>
+        
+        <div style="overflow-x:auto; overflow-y:auto; padding:20px; flex:1;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; table-layout: fixed;">
+                <thead>
+                    <tr style="background:#111; color:#fff; text-align:center; vertical-align:middle;">
+                        <th rowspan="2" style="width: 140px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">ACCOUNT</th>
+                        <th rowspan="2" style="width: 85px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">CLIENT REQUIRED</th>
+                        <th rowspan="2" style="width: 75px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">ON-BOARD</th>
+                        <th rowspan="2" style="width: 95px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">YES PLANTILLA NOT IN MIKA</th>
+                        <th rowspan="2" style="width: 95px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">YES MIKA NOT IN PLANTILLA</th>
+                        <th rowspan="2" style="width: 110px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">YES PLANTILLA BUT NOT IN PAYROLL (POSSIBLE TAMAD)</th>
+                        <th rowspan="2" style="width: 110px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">YES PAYROLL NOT IN PLANTILLA (POSSIBLE GHOST)</th>
+                        <th colspan="2" style="padding: 8px; border: 1px solid #333; text-align: center; vertical-align: middle;">PAYROLL +-5%</th>
+                        <th colspan="2" style="padding: 8px; border: 1px solid #333; text-align: center; vertical-align: middle;">MIKA +-5%</th>
+                        <th rowspan="2" style="width: 90px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">COMMANDO / RELIEVER</th>
+                        <th rowspan="2" style="width: 75px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">RELIVER</th>
+                        <th rowspan="2" style="width: 80px; padding: 10px; word-wrap: break-word; white-space: normal; border: 1px solid #333; text-align: center; vertical-align: middle;">TOTAL ACTIVE</th>
+                    </tr>
+                </thead>
+                <tbody id="bufferTableBody" style="background:#fff;"></tbody>
+                <tfoot id="bufferTableFoot" style="font-weight:bold; position:sticky; bottom:0; background:#f8d7da;"></tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- VCODE Variance Modal -->
+<div id="vcodeVarianceModal" class="modal-overlay" style="display: none; justify-content: center; align-items: center;">
+    <div class="glass-modal" style="width: 90%; max-width: 900px; height: 80vh; display: flex; flex-direction: column; padding: 20px; background: #fff; color: #000; border: 2px solid #000;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; font-size: 14px; text-transform: uppercase;"><i class="fas fa-balance-scale"></i> VCode Variance Management</h3>
+            <button type="button" class="action-btn" onclick="closeVCodeVarianceModal()" style="border-color:red; color:red; background:transparent; font-size: 10px;">CLOSE [X]</button>
+        </div>
+        
+        <div class="modal-body" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <!-- Action Controls Row -->
+            <div class="variance-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap;">
+                
+                <div class="table-controls" style="display: flex; align-items: center; gap: 15px;">
+                    <!-- Filter Search Bar -->
+                    <input type="text" id="filterSearch" class="search-box" placeholder="Filter search..." oninput="filterVCodeVarianceTable()" style="width: 200px; background: #fff; border: 1px solid #000; color: #000;">
+                    
+                    <!-- Total Headcount Summary Display next to search -->
+                    <div class="summary-banner" style="background: rgba(0, 0, 0, 0.05); padding: 6px 12px; border-radius: 4px; font-weight: bold; border-left: 4px solid #000; font-size: 12px; color: #000;">
+                        <span>Total Headcount (HC): </span><span id="varianceTotalHC">0.00</span>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons-wrapper" style="display: flex; gap: 8px;">
+                    <button type="button" class="action-btn" id="transferVarianceBtn" onclick="transferVCodeVarianceSelected()" style="border-color: #005f6b; color: #005f6b;">
+                        <i class="fas fa-exchange-alt"></i> Transfer
+                    </button>
+                    <button type="button" class="action-btn" id="deleteAllVarianceBtn" onclick="deleteSelectedOrAllVCodeVariance()" style="border-color: red; color: red;">
+                        <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                </div>
+            </div>
+
+            <!-- Variance Data Table -->
+            <div class="table-responsive" style="flex: 1; overflow-y: auto; border: 1px solid #000; background: #fff;">
+                <table class="table table-striped" id="vcodeVarianceTable" style="width: 100%; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #fff; z-index: 5;">
+                        <tr style="font-size: 10px; color: #000;">
+                            <th style="padding: 10px; text-align: center; background: #000; width: 40px;"><input type="checkbox" id="selectAllVariance" onclick="toggleSelectAllVariance(this)"></th>
+                            <th style="padding: 10px; text-align: left; background: #000;">VCODE</th>
+                            <th style="padding: 10px; text-align: left; background: #000;">OUTLET</th>
+                            <th style="padding: 10px; text-align: left; background: #000;">POSITION</th>
+                            <th style="padding: 10px; text-align: center; background: #000;">HC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vcodeVarianceBody" style="font-size: 11px; color: #000;">
+                        <!-- Dynamic Rows Injected Here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = window.parent.API;
+    let masterData = [];
+
+    function formatDateText(dateStr) {
+        if (!dateStr || dateStr === '---' || dateStr === 'undefined') return '---';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        
+        const months = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+        const monthName = months[d.getMonth()];
+        const day = String(d.getDate()).padStart(2, '0');
+        const year = d.getFullYear();
+
+        return `${monthName} ${day}, ${year}`;
+    }
+
+    function getIsoDate(dateStr) {
+        if (!dateStr || dateStr === '---') return '';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().split('T')[0];
+    }
+
+    function updateInitialProgress(val) {
+        const p = Math.min(Math.round(val), 100);
+        const bar = document.getElementById('initialBar');
+        const percentTxt = document.getElementById('initialPercent');
+        
+        if (bar) bar.style.width = p + '%';
+        if (percentTxt) percentTxt.innerText = p + '%';
+    }
+
+    async function loadPlantilla() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+        if (!sID) return;
+
+        try {
+            updateInitialProgress(15);
+            let simulatedProgress = 15;
+            
+            const progressInterval = setInterval(() => {
+                if (simulatedProgress < 85) {
+                    simulatedProgress += 10;
+                    updateInitialProgress(simulatedProgress);
+                }
+            }, 150);
+
+            updateInitialProgress(30);
+            const resp = await fetch(`${API}?sheetID=${sID}&module=Plantilla`);
+            
+            updateInitialProgress(75);
+            const rawData = await resp.json();
+            
+            updateInitialProgress(90);
+            masterData = rawData.map(item => {
+                let clientVal = '';
+                let statusAhVal = '';
+                if (Array.isArray(item)) {
+                    clientVal = item[42] || '';
+                    statusAhVal = item[33] || '';
+                } else {
+                    clientVal = item.client || item.Client || item.CLIENT || item.col42 || item.column_aq || item.aq || item.AQ || '';
+                    statusAhVal = item.status_ah || item.Status_AH || item.STATUS_AH || item.statusAH || item.col33 || item.ah || item.AH || '';
+                }
+
+                return {
+                    ...item,
+                    client: clientVal,
+                    status_ah: statusAhVal,
+                    date_ag: formatDateText(item.date_ag),
+                    birthday: formatDateText(item.birthday),
+                    date_hired: formatDateText(item.date_hired)
+                };
+            });
+
+            clearInterval(progressInterval);
+            updateInitialProgress(100);
+            updateDisplay(masterData);
+            
+            setTimeout(() => {
+                const loaderEl = document.getElementById('loader');
+                const containerEl = document.getElementById('tableContainer');
+                if(loaderEl) loaderEl.style.display = 'none';
+                if(containerEl) containerEl.style.display = 'block';
+                checkDuplicates(true);
+            }, 400); 
+        } catch (e) { 
+            console.error(e);
+            const loaderEl = document.getElementById('loader');
+            if(loaderEl) {
+                loaderEl.innerHTML = `<h4 style="color:red">INTERNET CONNECTION ERROR</h4>`;
+            }
+        }
+    }
+
+    function updateDisplay(data) {
+        const tbody = document.getElementById('plantillaData');
+        let hcTotal = 0;
+
+        tbody.innerHTML = data.map((item, index) => {
+            const hcValue = parseFloat(item.hc) || 0; 
+            hcTotal += hcValue;
+            let formattedHC = hcValue.toFixed(2);
+            if (formattedHC.startsWith("0.")) formattedHC = formattedHC.substring(1);
+            
+            const uniqueBtnId = `view-btn-${item.vcode}-${index}`;
+
+            return `<tr>
+                <td>${item.vcode}</td>
+                <td>${item.emploc}</td>
+                <td>${item.name}</td>
+                <td>${item.position}</td>
+                <td>${item.outlet}</td>
+                <td style="text-align: center;">${formattedHC}</td>
+                <td>${formatDateText(item.date_ag)}</td>
+                <td>${item.status || '---'}</td>
+                <td style="text-align: center;"> 
+                    <button class="action-btn row-icon-button" id="${uniqueBtnId}" data-vcode="${item.vcode}" style="padding: 4px 8px; border: none; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-eye" style="color: #000;"></i>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+
+        document.getElementById('totalHC').innerText = hcTotal.toFixed(2);
+
+        // Bind separate event listener for each row's icon button dynamically based on user preferences
+        data.forEach((item, index) => {
+            const uniqueBtnId = `view-btn-${item.vcode}-${index}`;
+            const btnElement = document.getElementById(uniqueBtnId);
+            if (btnElement) {
+                btnElement.addEventListener('click', function() {
+                    const rowVcode = this.getAttribute('data-vcode');
+                    handleIconButtonClick(rowVcode);
+                });
+            }
+        });
+    }
+
+    function handleIconButtonClick(vcode) {
+        if (!vcode || vcode === 'undefined') {
+            console.error("VCODE is missing or invalid for this row.");
+            return;
+        }
+        showDetails(vcode);
+    }
+
+    function showDetails(vcode) {
+        const member = masterData.find(r => String(r.vcode) === String(vcode));
+        if (!member) return;
+
+        const container = document.getElementById('panelContent');
+        const defaultIsoDate = getIsoDate(member.date_ag);
+        
+        container.innerHTML = `
+            <div class="panel-header-top">
+                <div class="header-item"><span class="label">VCODE</span><span class="value">${member.vcode}</span></div>
+                <div class="header-item"><span class="label">OUTLET</span><span class="value">${member.outlet}</span></div>
+                <div class="header-item"><span class="label">EMPLOC</span><span class="value">${member.emploc}</span></div>
+                <div class="header-item full-name-header"><span class="label">FULL NAME</span><span class="value">${member.name}</span></div>
+            </div>
+
+            <div class="panel-body">
+                <div class="detail-section">
+                    <div class="section-title"><i class="fas fa-user"></i> EMPLOYEE DETAILS</div>
+                    <div class="detail-grid">
+                        <div class="info-box"><span class="label">CONTACT</span><span class="value">${member.contact || ''}</span></div>
+                        <div class="info-box"><span class="label">BIRTHDAY</span><span class="value">${formatDateText(member.birthday) || ''}</span></div>
+                        <div class="info-box"><span class="label">AGE</span><span class="value">${member.age || ''}</span></div>
+                        <div class="info-box"><span class="label">CIVIL STATUS</span><span class="value">${member.civil_status || ''}</span></div>
+                        <div class="info-box"><span class="label">ATM NO.</span><span class="value">${member.atm_no || ''}</span></div>
+                        <div class="info-box"><span class="label">COORDINATOR</span><span class="value">${member.coordinator || ''}</span></div>
+                        <div class="info-box full-width">
+                            <span class="label">ADDRESS</span>
+                            <span class="value">${member.address || ''}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="section-title"><i class="fas fa-id-card"></i> BENEFITS</div>
+                    <div class="detail-grid">
+                        <div class="info-box"><span class="label">SSS</span><span class="value">${member.sss || ''}</span></div>
+                        <div class="info-box"><span class="label">PHILHEALTH</span><span class="value">${member.philhealth || ''}</span></div>
+                        <div class="info-box"><span class="label">PAG-IBIG</span><span class="value">${member.pagibig || ''}</span></div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="section-title"><i class="fas fa-id-card"></i> ADDITIONAL INFORMATION</div>
+                    <div class="detail-grid">
+                        <div class="info-box"><span class="label">RATE</span><span class="value">${member.rate || ''}</span></div>
+                        <div class="info-box"><span class="label">AREA</span><span class="value">${member.area || ''}</span></div>
+                        <div class="info-box"><span class="label">REST DAY</span><span class="value">${member.rest_day || ''}</span></div>
+                        <div class="info-box"><span class="label">DATE HIRED</span><span class="value">${formatDateText(member.date_hired) || ''}</span></div>
+                        <div class="info-box"><span class="label">TENURE</span><span class="value">${member.tenure || ''}</span></div>
+                        <div class="info-box"><span class="label">STATUS</span><span class="value">${member.status_ah || member.status || ''}</span></div>
+                    </div>
+                </div>
+
+                <div class="detail-section update-box">
+                    <div class="section-title"><i class="fas fa-edit"></i> UPDATE RECORDS</div>
+                    <div class="detail-grid">
+                        <div class="info-box">
+                            <span class="label">RATE</span>
+                            <input type="text" id="updRate" class="input-dark" value="${member.rate || ''}">
+                        </div>
+                        <div class="info-box">
+                            <span class="label">DATE</span>
+                            <input type="date" id="updDateAG" class="input-dark" value="${defaultIsoDate}">
+                        </div>
+                        <div class="info-box full-width">
+                            <span class="label">STATUS</span>
+                            <select id="updStatusAH" class="input-dark">
+                                ${[
+                                    "ACTIVE", "AWOL", "BACK OUT", "ENDO", "FLOATING",
+                                    "MATERNITY LEAVE", "NEWLY HIRED", "PATERNITY LEAVE",
+                                    "QUARANTINE", "RE-HIRED", "RELIEVER", "RESIGNED",
+                                    "SEASONAL", "SICK LEAVE", "VACATION LEAVE", "TERMINATED", "MOVEMENT"
+                                ].map(status => `
+                                    <option value="${status}" ${String(member.status_ah).trim().toUpperCase() === status ? 'selected' : ''}>
+                                        ${status}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <button class="update-btn" onclick="performUpdate('${member.vcode}')">UPDATE RECORD</button>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('sidePanel').classList.add('open');
+    }
+
+    function loadSilData() {
+        const silTableBody = document.getElementById('silTableBody');
+        if (!silTableBody) return;
+        
+        silTableBody.innerHTML = "";
+
+        masterData.forEach(item => {
+            if (!item.date_hired || item.date_hired === '---') return;
+
+            const hireDate = new Date(item.date_hired);
+            if (isNaN(hireDate.getTime())) return;
+
+            const rate = parseFloat(item.rate) || 0;
+            const amount = rate * 5;
+            const dateHiredStr = formatDateText(item.date_hired);
+            let clientVal = item.client || '';
+
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-datehired', dateHiredStr);
+            tr.setAttribute('data-hire-year', hireDate.getFullYear());
+            tr.innerHTML = `
+                <td>${clientVal || ''}</td>
+                <td>${item.emploc || ''}</td>
+                <td>${item.name || ''}</td>
+                <td>${item.position || ''}</td>
+                <td>${item.outlet || ''}</td>
+                <td>${dateHiredStr}</td>
+                <td>₱ ${rate.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td style="font-weight: bold;">₱ ${amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            `;
+            silTableBody.appendChild(tr);
+        });
+
+        filterSilTable();
+    }
+
+    function filterSilTable() {
+        const searchInput = document.getElementById('silSearch');
+        const monthSelect = document.getElementById('silMonth');
+        const yearSelect = document.getElementById('silYear');
+        if (!searchInput) return;
+
+        const searchTerm = searchInput.value.toUpperCase().trim();
+        const selectedMonth = monthSelect ? monthSelect.value.toUpperCase() : 'ALL';
+        const selectedYear = yearSelect ? yearSelect.value.toUpperCase() : 'ALL';
+
+        const rows = document.querySelectorAll('#silTableBody tr');
+        let totalVisibleAmount = 0;
+
+        rows.forEach(row => {
+            let rowText = "";
+            for (let i = 0; i < row.cells.length; i++) {
+                rowText += " " + row.cells[i].innerText.toUpperCase();
+            }
+
+            const dateHired = row.getAttribute('data-datehired') || row.cells[5].innerText.toUpperCase();
+            const hireYear = parseInt(row.getAttribute('data-hire-year')) || 0;
+
+            const matchesSearch = !searchTerm || rowText.includes(searchTerm);
+            const matchesMonth = selectedMonth === 'ALL' || dateHired.includes(selectedMonth);
+            
+            let matchesYear = true;
+            if (selectedYear !== 'ALL') {
+                const targetYear = parseInt(selectedYear);
+                const hasReachedAnniversary = hireYear < targetYear;
+                matchesYear = hasReachedAnniversary;
+            } else {
+                const currentSystemYear = 2026; 
+                matchesYear = hireYear < currentSystemYear;
+            }
+
+            if (matchesSearch && matchesMonth && matchesYear) {
+                row.style.display = ""; 
+                const amountCell = row.cells[7].innerText;
+                const cleanAmount = parseFloat(amountCell.replace(/[₱\s,]/g, "")) || 0;
+                totalVisibleAmount += cleanAmount;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        const totalDisplay = document.getElementById('silTotalDisplay');
+        if (totalDisplay) {
+            totalDisplay.innerText = "₱ " + totalVisibleAmount.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+    }
+
+    function runSIL() {
+        document.getElementById('silSystemModal').style.display = 'flex';
+        loadSilData();
+    }
+
+    function closeSilSystemModal() {
+        document.getElementById('silSystemModal').style.display = 'none';
+    }
+
+    async function refreshSil() {
+        openModal("REFRESHING SIL DATA", "Fetching latest database records...");
+        try {
+            await loadPlantilla();
+            loadSilData();
+            setModalProgress(100, "SIL Refreshed successfully!");
+            setTimeout(() => {
+                closeModal();
+            }, 500);
+        } catch (e) {
+            console.error(e);
+            finishModal("INTERNET CONNECTION FAILED");
+        }
+    }
+
+    function printSil() {
+        window.print();
+    }
+
+    function downloadSil() {
+        const rows = document.querySelectorAll('#silTableBody tr');
+        const exportData = [];
+
+        rows.forEach(row => {
+            if (row.style.display !== "none") {
+                exportData.push({
+                    "CLIENT": row.cells[0].innerText,
+                    "EMPLOC": row.cells[1].innerText,
+                    "FULLNAME": row.cells[2].innerText,
+                    "POSITION": row.cells[3].innerText,
+                    "OUTLET": row.cells[4].innerText,
+                    "DATE HIRED": row.cells[5].innerText,
+                    "RATE": row.cells[6].innerText,
+                    "AMOUNT": row.cells[7].innerText
+                });
+            }
+        });
+
+        if (exportData.length === 0) {
+            alert("No SIL records found to export.");
+            return;
+        }
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "SIL_System");
+        XLSX.writeFile(wb, `SIL_System_Data.xlsx`);
+    }
+
+    function checkDuplicates(isAuto = false) {
+        const vcodeMap = {};
+        
+        masterData.forEach(item => {
+            const vcode = String(item.vcode || "").trim();
+            if (vcode && vcode !== "---") {
+                if (!vcodeMap[vcode]) {
+                    vcodeMap[vcode] = [];
+                }
+                vcodeMap[vcode].push(item);
+            }
+        });
+
+        const duplicateEntries = [];
+        Object.keys(vcodeMap).forEach(vcode => {
+            if (vcodeMap[vcode].length > 1) {
+                vcodeMap[vcode].forEach(item => {
+                    duplicateEntries.push(item);
+                });
+            }
+        });
+
+        const tbody = document.getElementById('duplicateTableBody');
+        tbody.innerHTML = "";
+
+        if (duplicateEntries.length === 0) {
+            if (!isAuto) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:#005f6b; font-weight:bold;">NO DUPLICATE VCODES FOUND!</td></tr>`;
+                document.getElementById('duplicateModal').style.display = 'flex';
+            }
+            return;
+        }
+
+        duplicateEntries.forEach(item => {
+            const hcVal = parseFloat(item.hc) || 0;
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = "1px solid #ddd";
+            tr.innerHTML = `
+                <td style="padding: 10px; font-weight: bold; color: #ff0000;">${item.vcode || ''}</td>
+                <td style="padding: 10px;">${item.name || ''}</td>
+                <td style="padding: 10px;">${item.outlet || ''}</td>
+                <td style="padding: 10px; text-align: center;">${hcVal.toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('duplicateModal').style.display = 'flex';
+    }
+
+    async function openPlantillaSummary() {
+        const modal = document.getElementById('summaryModal');
+        const tbody = document.getElementById('summaryTableBody');
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+
+        modal.style.display = 'flex';
+        tbody.innerHTML = `
+        <tr>
+            <td colspan="4" style="padding:50px;">
+            <div style="width: 100%; max-width: 100px; margin: 0 auto; text-align: center;">
+                REFRESHING DATA...
+            </div>
+            </td>
+        </tr>`;
+
+        try {
+            const vcodeResp = await fetch(`${API}?sheetID=${sID}&module=vcode masterlist`);
+            const vcodeData = await vcodeResp.json();
+
+            const summaryMap = {};
+            let grandTotalReq = 0;
+            let grandTotalOnboard = 0;
+
+            vcodeData.forEach(row => {
+                const pos = String(row[3] || row.position || "UNDEFINED").trim().toUpperCase();
+                const reqHC = parseFloat(row[11] || row.hc || 0) || 0;
+                if (!summaryMap[pos]) summaryMap[pos] = { required: 0, onboard: 0 };
+                summaryMap[pos].required += reqHC;
+                grandTotalReq += reqHC;
+            });
+
+            masterData.forEach(emp => {
+                const pos = String(emp.position || "UNDEFINED").trim().toUpperCase();
+                const onboardHC = parseFloat(emp.hc) || 0;
+                if (summaryMap[pos]) {
+                    summaryMap[pos].onboard += onboardHC;
+                    grandTotalOnboard += onboardHC;
+                }
+            });
+
+            tbody.innerHTML = Object.keys(summaryMap).sort().map(pos => {
+                const data = summaryMap[pos];
+                const gap = data.onboard - data.required;
+                const gapColor = gap < 0 ? "#ff0000" : (gap > 0 ? "#00aaff" : "#005f6b");
+
+                return `
+                    <tr style="border-bottom: 1px solid #ddd;">
+                        <td style="padding: 8px 12px; text-align: left; font-weight: bold;">${pos}</td>
+                        <td style="padding: 8px; text-align: center;">${data.required.toFixed(2)}</td>
+                        <td style="padding: 8px; text-align: center;">${data.onboard.toFixed(2)}</td>
+                        <td style="padding: 8px; text-align: center; font-weight: bold; color: ${gapColor};">
+                            ${gap.toFixed(2)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            const grandTotalGap = grandTotalOnboard - grandTotalReq;
+            document.getElementById('sumTotalReq').innerText = grandTotalReq.toFixed(2);
+            document.getElementById('sumTotalOnboard').innerText = grandTotalOnboard.toFixed(2);
+            
+            const gapFooter = document.getElementById('sumTotalGap');
+            gapFooter.innerText = grandTotalGap.toFixed(2);
+            gapFooter.style.color = grandTotalGap < 0 ? "red" : "#005f6b";
+
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">COMMUNICATION ERROR</td></tr>`;
+        }
+    }
+
+    let vcodeMasterData = []; 
+
+    async function openVcodeMasterlist() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+        const modal = document.getElementById('vcodeMasterlistModal');
+        const tbody = document.getElementById('vcodeModalBody');
+        
+        modal.style.display = 'flex';
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#000;">LOADING TACTICAL DATABASE...</td></tr>`;
+
+        try {
+            const resp = await fetch(`${API}?sheetID=${sID}&module=vcode masterlist`);
+            const rawData = await resp.json();
+            
+            let loadedData = Array.isArray(rawData) ? rawData : (rawData.data || []);
+
+            vcodeMasterData = loadedData.filter(row => {
+                const vcode = Array.isArray(row) ? (row[0] || '') : (row.vcode || row.VCODE || '');
+                return vcode && String(vcode).trim().toUpperCase() !== 'VCODE';
+            });
+
+            renderVcodeModalTable(vcodeMasterData);
+        } catch (e) {
+            console.error("VCode Fetch Error:", e);
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red; padding:50px;">INTERNET CONNECTION FAILED</td></tr>`;
+        }
+    }
+
+    function renderVcodeModalTable(data) {
+        const tbody = document.getElementById('vcodeModalBody');
+        const countSpan = document.getElementById('vcodeCount');
+        
+        const totalHC = data.reduce((sum, row) => {
+            const hcRaw = Array.isArray(row) ? (row[11] || 0) : (row.hc || row.HC || 0);
+            return sum + (parseFloat(hcRaw) || 0);
+        }, 0);
+
+        if (countSpan) countSpan.innerText = totalHC.toFixed(2);
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#666;">NO VCODE RECORDS FOUND</td></tr>`;
+            return;
+        }
+        
+        tbody.innerHTML = data.map((row, index) => {
+            const vcode = Array.isArray(row) ? (row[0] || '') : (row.vcode || row.VCODE || '');
+            const outlet = Array.isArray(row) ? (row[1] || '') : (row.outlet || row.OUTLET || '');
+            const position = Array.isArray(row) ? (row[3] || '') : (row.position || row.POSITION || '');
+            const hcRaw = Array.isArray(row) ? (row[11] || 0) : (row.hc || row.HC || 0);
+            const hc = parseFloat(hcRaw) || 0;
+
+            return `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px; text-align: left; font-weight: bold;">${vcode}</td>
+                    <td style="padding: 10px; text-align: left;">${outlet}</td>
+                    <td style="padding: 10px; text-align: left;">${position}</td> 
+                    <td style="padding: 10px; text-align: center;">${hc.toFixed(2)}</td>
+                    <td style="padding: 10px; text-align: center;">
+                        <button onclick="showInternalDetails(${index})" style="background:none; border:none; cursor:pointer;">
+                            <i class="fas fa-eye" style="color: #000;"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function showInternalDetails(index) {
+        const item = vcodeMasterData[index];
+        if (!item) return;
+
+        const content = document.getElementById('internalPanelContent');
+
+        const vcode = Array.isArray(item) ? (item[0] || '') : (item.vcode || item.VCODE || '');
+        const outlet = Array.isArray(item) ? (item[1] || '') : (item.outlet || item.OUTLET || '');
+        const position = Array.isArray(item) ? (item[3] || '') : (item.position || item.POSITION || '');
+        const hc = Array.isArray(item) ? (item[11] || '0') : (item.hc || item.HC || '0');
+        const area = Array.isArray(item) ? (item[4] || '---') : (item.area || item.AREA || '---');
+        const coordinator = Array.isArray(item) ? (item[9] || 'UNASSIGNED') : (item.coordinator || item.COORDINATOR || 'UNASSIGNED');
+
+        content.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="background:#000; color:#fff; padding:10px;">
+                    <label style="font-size:9px; color:var(--accent); display:block;">VCODE</label>
+                    <span style="font-size:14px; font-weight:bold;">${vcode}</span>
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#666; display:block;">OUTLET NAME</label>
+                    <span style="font-size:12px; font-weight:bold; color:#000;">${outlet}</span>
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#666; display:block;">POSITION</label>
+                    <span style="font-size:12px;">${position}</span>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div>
+                        <label style="font-size:10px; color:#666; display:block;">HC VALUE</label>
+                        <span style="font-size:12px; font-weight:bold;">${hc}</span>
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#666; display:block;">AREA</label>
+                        <span style="font-size:12px;">${area}</span>
+                    </div>
+                </div>
+                <hr style="border:0; border-top:1px solid #ddd;">
+                <div>
+                    <label style="font-size:10px; color:#666; display:block;">COORDINATOR</label>
+                    <span style="font-size:12px;">${coordinator}</span>
+                </div>
+            </div>
+        `;
+
+        toggleInternalPanel(true);
+    }
+
+    function toggleInternalPanel(open) {
+        const panel = document.getElementById('vcodeInternalPanel');
+        panel.style.width = open ? "350px" : "0";
+        panel.style.borderLeft = open ? "2px solid #000" : "0 solid #000";
+    }
+
+    function filterVcodeModal() {
+        const val = document.getElementById('vcodeSearch').value.toLowerCase().trim();
+        
+        const filtered = vcodeMasterData.filter(row => {
+            const searchableText = Array.isArray(row) 
+                ? row.join(' ').toLowerCase() 
+                : Object.values(row).join(' ').toLowerCase();
+
+            return searchableText.includes(val);
+        });
+
+        renderVcodeModalTable(filtered);
+    }
+
+    function closeVcodeModal() {
+        document.getElementById('vcodeMasterlistModal').style.display = 'none';
+    }
+
+    async function runBufferPlusMinus() {
+        const modal = document.getElementById('bufferModal');
+        const tbody = document.getElementById('bufferTableBody');
+        const tfoot = document.getElementById('bufferTableFoot');
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+
+        if (!modal) return;
+        modal.style.display = 'flex';
+        
+        let modalHeaderContainer = modal.querySelector('.modal-header, .buffer-modal-header, header');
+        if (!modalHeaderContainer) {
+            const closeBtn = modal.querySelector('button, .close-btn');
+            if (closeBtn && closeBtn.parentNode) {
+                modalHeaderContainer = closeBtn.parentNode;
+                modalHeaderContainer.style.display = 'flex';
+                modalHeaderContainer.style.justify = 'space-between';
+                modalHeaderContainer.style.alignItems = 'center';
+            }
+        }
+
+        let actionButtonsWrapper = modal.querySelector('#bufferModalHeaderButtons');
+        if (!actionButtonsWrapper && modalHeaderContainer) {
+            actionButtonsWrapper = document.createElement('div');
+            actionButtonsWrapper.id = 'bufferModalHeaderButtons';
+            actionButtonsWrapper.style.display = 'flex';
+            actionButtonsWrapper.style.gap = '6px';
+            actionButtonsWrapper.style.flexWrap = 'wrap';
+            actionButtonsWrapper.style.justifyContent = 'center';
+            actionButtonsWrapper.style.alignItems = 'center';
+            actionButtonsWrapper.style.flex = '1';
+            actionButtonsWrapper.style.margin = '0 15px';
+
+            const closeBtnElement = modalHeaderContainer.querySelector('button:last-of-type, .close-btn');
+            if (closeBtnElement) {
+                modalHeaderContainer.insertBefore(actionButtonsWrapper, closeBtnElement);
+            } else {
+                modalHeaderContainer.appendChild(actionButtonsWrapper);
+            }
+        }
+
+        if (actionButtonsWrapper && !actionButtonsWrapper.dataset.buttonsInitialized) {
+            actionButtonsWrapper.dataset.buttonsInitialized = "true";
+            actionButtonsWrapper.innerHTML = `
+                <button id="btnPlantillaNotMika" style="padding:5px 10px; background:#333; color:#fff; border:1px solid #555; cursor:pointer; border-radius:4px; font-weight:bold; font-size:11px;">YES PLANTILLA NOT IN MIKA</button>
+                <button id="btnMikaNotPlantilla" style="padding:5px 10px; background:#333; color:#fff; border:1px solid #555; cursor:pointer; border-radius:4px; font-weight:bold; font-size:11px;">YES MIKA NOT IN PLANTILLA</button>
+                <button id="btnPlantillaNotPayroll" style="padding:5px 10px; background:#333; color:#fff; border:1px solid #555; cursor:pointer; border-radius:4px; font-weight:bold; font-size:11px;">YES PLANTILLA BUT NOT IN PAYROLL (POSSIBLE TAMAD)</button>
+                <button id="btnPayrollNotPlantilla" style="padding:5px 10px; background:#333; color:#fff; border:1px solid #555; cursor:pointer; border-radius:4px; font-weight:bold; font-size:11px;">YES PAYROLL NOT IN PLANTILLA (POSSIBLE GHOST)</button>
+            `;
+
+            document.getElementById('btnPlantillaNotMika').addEventListener('click', async function() {
+                await openDrilldownModal('YES PLANTILLA NOT IN MIKA RECORDS', 'yes_plantilla_not_mika');
+            });
+
+            document.getElementById('btnMikaNotPlantilla').addEventListener('click', async function() {
+                await openDrilldownModal('YES MIKA NOT IN PLANTILLA RECORDS', 'yes_mika_not_plantilla');
+            });
+
+            document.getElementById('btnPlantillaNotPayroll').addEventListener('click', async function() {
+                await openDrilldownModal('YES PLANTILLA BUT NOT IN PAYROLL RECORDS', 'payroll_plantilla_tamad_drilldown');
+            });
+
+            document.getElementById('btnPayrollNotPlantilla').addEventListener('click', async function() {
+                await openDrilldownModal('YES PAYROLL NOT IN PLANTILLA RECORDS', 'payroll_plantilla_ghost_drilldown');
+            });
+        }
+        
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="15" style="padding:40px; text-align:center; font-weight:bold; color:#000;">LOADING +-5% BUFFER DATA...</td></tr>`;
+        }
+        if (tfoot) {
+            tfoot.innerHTML = "";
+        }
+
+        if (!sID) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; color:red;">Error: Missing sheetID parameter.</td></tr>`;
+            return;
+        }
+
+        if (!document.getElementById('buffer-table-dynamic-styles')) {
+            const styleEl = document.createElement('style');
+            styleEl.id = 'buffer-table-dynamic-styles';
+            styleEl.innerHTML = `
+                #bufferTableBody td.pct-black { color: #000000 !important; }
+            `;
+            document.head.appendChild(styleEl);
+        }
+
+        try {
+            const targetURL = `${API}?sheetID=${sID}&module=5_buffer`;
+            const resp = await fetch(targetURL);
+            const jsonResponse = await resp.json();
+
+            if (jsonResponse.error) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; color:red;">Error: ${jsonResponse.error}</td></tr>`;
+                return;
+            }
+
+            const rows = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.rows || jsonResponse.data || []);
+
+            if (rows.length === 0) {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="15" style="padding:30px; text-align:center; color:red;">No buffer records found.</td></tr>`;
+                return;
+            }
+
+            if (tbody) {
+                tbody.innerHTML = ""; 
+
+                rows.forEach(row => {
+                    const formatPct = (val) => {
+                        if (val === undefined || val === null || val === '') return '0.00%';
+                        let num = Number(val);
+                        if (isNaN(num)) return val;
+                        return (num * 100).toFixed(2) + '%';
+                    };
+
+                    const accountName = row.account !== undefined ? row.account : '';
+                    const isTotalRow = accountName.toLowerCase().includes('total');
+                    const rowBgColor = '#00cc66';
+
+                    const dataValues = [
+                        accountName, 
+                        row.client_required !== undefined ? Math.round(row.client_required) : "", 
+                        row.on_board !== undefined ? Math.round(row.on_board) : "", 
+                        row.yes_plantilla_not_mika !== undefined ? Math.round(row.yes_plantilla_not_mika) : "", 
+                        row.yes_mika_not_plantilla !== undefined ? Math.round(row.yes_mika_not_plantilla) : "", 
+                        row.yes_plantilla_not_payroll !== undefined ? Math.round(row.yes_plantilla_not_payroll) : "", 
+                        row.yes_payroll_not_plantilla !== undefined ? Math.round(row.yes_payroll_not_plantilla) : "", 
+                        row.payroll_buffer_1, 
+                        row.payroll_buffer_2, 
+                        row.mika_buffer_1, 
+                        row.mika_buffer_2, 
+                        row.commando_reliever !== undefined ? Math.round(row.commando_reliever) : "", 
+                        row.reliever !== undefined ? Math.round(row.reliever) : "", 
+                        row.total_active !== undefined ? Math.round(row.total_active) : ""
+                    ];
+
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = "1px solid #ddd";
+
+                    dataValues.forEach((val, i) => {
+                        let td = document.createElement('td');
+                        td.style.padding = "8px 10px";
+                        td.style.border = "1px solid #add8e6";
+
+                        if (i >= 7 && i <= 10) {
+                            td.textContent = formatPct(val);
+                        } else {
+                            td.textContent = val;
+                        }
+
+                        if (isTotalRow) {
+                            td.style.setProperty('background-color', rowBgColor, 'important');
+                            td.style.setProperty('color', '#ffffff', 'important');
+                        } else {
+                            td.style.setProperty('background-color', '#ffffff', 'important');
+                            td.style.setProperty('color', '#000000', 'important');
+
+                            if (i >= 3 && i <= 6 && val !== "" && Number(val) > 0) {
+                                td.style.setProperty('background-color', '#e88e8e', 'important');
+                                td.style.setProperty('color', '#000000', 'important');
+                            }
+
+                            if (i >= 7 && i <= 10) {
+                                let numVal = Number(val);
+                                if (val === undefined || val === null || val === '' || isNaN(numVal)) {
+                                    td.style.setProperty('background-color', '#ffffff', 'important');
+                                } else {
+                                    let pctVal = numVal * 100;
+
+                                    if (i === 7 || i === 8) {
+                                        if (pctVal > 5.01 || pctVal < -5.01) {
+                                            td.style.setProperty('background-color', '#e06666', 'important');
+                                            td.style.setProperty('color', '#000000', 'important');
+                                        } else if ((pctVal >= 1.0 && pctVal <= 5.0) || (pctVal >= -5.0 && pctVal <= -1.0)) {
+                                            td.style.setProperty('background-color', 'yellow', 'important');
+                                            td.style.setProperty('color', '#000000', 'important');
+                                        } else {
+                                            td.style.setProperty('background-color', '#70e92b', 'important');
+                                            td.style.setProperty('color', '#000000', 'important');
+                                        }
+                                    } else if (i === 9 || i === 10) {
+                                        if (pctVal > 5.01 || pctVal < -5.01) {
+                                            td.style.setProperty('background-color', '#e06666', 'important');
+                                            td.style.setProperty('color', '#000000', 'important');
+                                        } else if ((pctVal > 1.0 && pctVal <= 5.0) || (pctVal >= -5.0 && pctVal < -1.0)) {
+                                            td.style.setProperty('background-color', 'yellow', 'important');
+                                            td.style.setProperty('color', '#000000', 'important');
+                                        } else {
+                                            td.style.setProperty('background-color', '#70e92b', 'important');
+                                            td.style.setProperty('color', '#000000', 'important');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (i > 0) td.style.textAlign = "center";
+                        if (isTotalRow || i === 13) td.style.fontWeight = "bold";
+
+                        td.className = 'pct-black';
+                        tr.appendChild(td);
+                    });
+
+                    tbody.appendChild(tr);
+                });
+            }
+
+        } catch (e) {
+            console.error("Buffer fetch error:", e);
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="15" style="text-align:center; color:red; padding:30px;">INTERNET CONNECTION FAILED</td></tr>`;
+            }
+        }
+    }
+
+    let vcodeVarianceData = []; 
+
+    async function runVcodeVariance() {
+        const modal = document.getElementById('vcodeVarianceModal');
+        const tbody = document.getElementById('vcodeVarianceBody');
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+
+        modal.style.display = 'flex';
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 20px; text-align: center;">Fetching Vcode Variance records...</td></tr>`;
+
+        try {
+            const resp = await fetch(`${API}?sheetID=${sID}&module=vcode_variance`);
+            const data = await resp.json();
+
+            if (data.error) {
+                showPopupAlert(data.error);
+                tbody.innerHTML = `<tr><td colspan="5" style="padding: 20px; text-align: center; color: red;">${data.error}</td></tr>`;
+                return;
+            }
+
+            vcodeVarianceData = data.rows || data || [];
+            renderVCodeVarianceTable(vcodeVarianceData);
+        } catch (e) {
+            console.error(e);
+            vcodeVarianceData = masterData.map(item => ({
+                VCODE: item.vcode,
+                OUTLET: item.outlet,
+                POSITION: item.position,
+                HC: item.hc
+            }));
+            renderVCodeVarianceTable(vcodeVarianceData);
+        }
+    }
+
+    function renderVCodeVarianceTable(data) {
+        const tbody = document.getElementById('vcodeVarianceBody');
+        const totalHCSpan = document.getElementById('varianceTotalHC');
+        
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="padding: 20px; text-align: center;">No variance records found.</td></tr>`;
+            totalHCSpan.innerText = '0.00';
+            return;
+        }
+
+        let totalHC = 0;
+
+        tbody.innerHTML = data.map((item, index) => {
+            const vcode = item.VCODE || item.vcode || '';
+            const outlet = item.OUTLET || item.outlet || '';
+            const position = item.POSITION || item.position || '';
+            const hc = parseFloat(item.HC || item.hc) || 0;
+
+            totalHC += hc;
+
+            return `
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px; text-align: center;"><input type="checkbox" class="variance-row-checkbox" value="${vcode}"></td>
+                    <td style="padding: 8px; font-weight: bold;">${vcode}</td>
+                    <td style="padding: 8px;">${outlet}</td>
+                    <td style="padding: 8px;">${position}</td>
+                    <td style="padding: 8px; text-align: center;">${hc.toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        totalHCSpan.innerText = totalHC.toFixed(2);
+    }
+
+    function closeVCodeVarianceModal() {
+        document.getElementById('vcodeVarianceModal').style.display = 'none';
+    }
+
+    function filterVCodeVarianceTable() {
+        const searchInput = document.getElementById('filterSearch').value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#vcodeVarianceBody tr');
+        
+        let filteredTotalHC = 0;
+
+        rows.forEach(row => {
+            const textContent = row.innerText.toLowerCase();
+            const hcVal = parseFloat(row.cells[4] ? row.cells[4].innerText : 0) || 0;
+
+            const matchesSearch = !searchInput || textContent.includes(searchInput);
+
+            if (matchesSearch) {
+                row.style.display = '';
+                filteredTotalHC += hcVal;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        document.getElementById('varianceTotalHC').innerText = filteredTotalHC.toFixed(2);
+    }
+
+    function toggleSelectAllVariance(masterCheckbox) {
+        const checkboxes = document.querySelectorAll('.variance-row-checkbox');
+        checkboxes.forEach(cb => {
+            if (cb.closest('tr').style.display !== 'none') {
+                cb.checked = masterCheckbox.checked;
+            }
+        });
+    }
+
+    async function transferVCodeVarianceSelected() {
+        const selectedCheckboxes = document.querySelectorAll('.variance-row-checkbox:checked');
+        const totalSelected = selectedCheckboxes.length;
+        if (totalSelected === 0) {
+            showPopupAlert('Please select at least one VCODE record to transfer.');
+            return;
+        }
+
+        const selectedVcodes = Array.from(selectedCheckboxes).map(cb => cb.value);
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+        const currentUserEmail = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail') || '';
+
+        // Processing status loop simulation with "X out of Y" format
+        for (let i = 0; i < totalSelected; i++) {
+            showPopupAlert(`Processing: ${i + 1} out of ${totalSelected} records have been moving to VACANCY...`);
+            await new Promise(resolve => setTimeout(resolve, 150));
+        }
+
+        try {
+            const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=vcode_variance&action=transfer`, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ 
+                    vcodes: selectedVcodes,
+                    targetSpreadsheetID: "1GRNJbY1xoLuhrCVOduSo9DBACseMHJa9s5l5W4rOc5Y",
+                    targetSheet: "VACANCY",
+                    userEmail: currentUserEmail
+                })
+            });
+
+            const textResponse = await response.text();
+            let result;
+            try {
+                result = JSON.parse(textResponse);
+            } catch (e) {
+                result = { status: "success", message: textResponse || "Transfer completed." };
+            }
+
+            if (result.status === "success" || result.success) {
+                showPopupAlert(result.message || `Successfully transferred ${totalSelected} record(s) to VACANCY.`);
+                await runVcodeVariance(); // Auto-refresh table data
+            } else {
+                showPopupAlert("Server Error: " + (result.message || JSON.stringify(result)));
+            }
+        } catch (err) {
+            console.error("Transfer execution error:", err);
+            showPopupAlert("Failed to connect to server for transfer.");
+        }
+    }
+
+    async function deleteSelectedOrAllVCodeVariance() {
+        const checkboxes = document.querySelectorAll('.variance-row-checkbox:checked');
+        const totalSelected = checkboxes.length;
+        
+        if (totalSelected === 0) {
+            showPopupAlert("Please select at least one item to delete.");
+            return;
+        }
+
+        const vcodesToDelete = Array.from(checkboxes).map(cb => cb.value.trim()).filter(v => v !== "");
+
+        if (vcodesToDelete.length === 0) {
+            showPopupAlert("Could not identify valid VCODE values.");
+            return;
+        }
+
+        const currentUserEmail = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail') || '';
+
+        showPopupConfirm(`Are you sure you want to delete ${totalSelected} record(s)? This will move them to 'DELETED VCODES'.`, async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sID = urlParams.get('sheetID');
+            
+            // Processing status loop simulation with "X out of Y" format
+            for (let i = 0; i < totalSelected; i++) {
+                showPopupAlert(`Processing: ${i + 1} out of ${totalSelected} records are currently moving to DELETED VCODES...`);
+                await new Promise(resolve => setTimeout(resolve, 150));
+            }
+
+            try {
+                const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=vcode_variance&action=delete`, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ 
+                        vcodes: vcodesToDelete,
+                        targetSpreadsheetID: "1GRNJbY1xoLuhrCVOduSo9DBACseMHJa9s5l5W4rOc5Y",
+                        userEmail: currentUserEmail
+                    })
+                });
+
+                const textResponse = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(textResponse);
+                } catch (e) {
+                    result = { status: "success", message: textResponse || "Deletion completed." };
+                }
+                
+                if (result.status === "success" || result.success) {
+                    showPopupAlert(result.message || "Records deleted and archived successfully.");
+                    await runVcodeVariance(); // Auto-refresh table data
+                } else {
+                    showPopupAlert("Server Error: " + (result.message || JSON.stringify(result)));
+                }
+
+            } catch (err) {
+                console.error("Delete execution error:", err);
+                showPopupAlert("Internet connection error during deletion.");
+            }
+        });
+    }
+
+    function showPopupAlert(message) {
+        let alertModal = document.getElementById('customPopupAlert');
+        if (!alertModal) {
+            alertModal = document.createElement('div');
+            alertModal.id = 'customPopupAlert';
+            alertModal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); display:flex; justify-content:center; align-items:center; z-index:30000;';
+            alertModal.innerHTML = `
+                <div style="background:#fff; color:#000; padding:25px; border-radius:8px; width:90%; max-width:400px; text-align:center; border:2px solid #000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                    <h3 style="margin-top:0; font-size:16px; text-transform:uppercase; border-bottom:2px solid #000; padding-bottom:10px;">System Message</h3>
+                    <p id="customPopupMessage" style="font-size:12px; margin:20px 0; font-weight:bold;"></p>
+                    <button onclick="document.getElementById('customPopupAlert').style.display='none'" class="action-btn" style="margin:0 auto; border-color:#000; color:#000; background:#f0f0f0; padding:8px 20px;">OK</button>
+                </div>
+            `;
+            document.body.appendChild(alertModal);
+        }
+        document.getElementById('customPopupMessage').innerText = message;
+        alertModal.style.display = 'flex';
+    }
+
+    function showPopupConfirm(message, onConfirmCallback) {
+        let confirmModal = document.getElementById('customPopupConfirm');
+        if (!confirmModal) {
+            confirmModal = document.createElement('div');
+            confirmModal.id = 'customPopupConfirm';
+            confirmModal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); display:flex; justify-content:center; align-items:center; z-index:30000;';
+            confirmModal.innerHTML = `
+                <div style="background:#fff; color:#000; padding:25px; border-radius:8px; width:90%; max-width:400px; text-align:center; border:2px solid #000; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                    <h3 style="margin-top:0; font-size:16px; text-transform:uppercase; border-bottom:2px solid #000; padding-bottom:10px;">Confirm Action</h3>
+                    <p id="customConfirmMessage" style="font-size:12px; margin:20px 0; font-weight:bold;"></p>
+                    <div style="display:flex; justify-content:center; gap:10px;">
+                        <button id="customConfirmYesBtn" class="action-btn" style="border-color:red; color:red; background:transparent; padding:8px 20px;">YES</button>
+                        <button onclick="document.getElementById('customPopupConfirm').style.display='none'" class="action-btn" style="border-color:#000; color:#000; background:#f0f0f0; padding:8px 20px;">CANCEL</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(confirmModal);
+        }
+        document.getElementById('customConfirmMessage').innerText = message;
+        
+        const yesBtn = document.getElementById('customConfirmYesBtn');
+        const newYesBtn = yesBtn.cloneNode(true);
+        yesBtn.parentNode.replaceChild(newYesBtn, yesBtn);
+        
+        newYesBtn.addEventListener('click', () => {
+            confirmModal.style.display = 'none';
+            if (typeof onConfirmCallback === 'function') {
+                onConfirmCallback();
+            }
+        });
+
+        confirmModal.style.display = 'flex';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!document.getElementById('subDrilldownModal')) {
+            const modalDiv = document.createElement('div');
+            modalDiv.id = 'subDrilldownModal';
+            modalDiv.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:20000; justify-content:center; align-items:center;';
+            modalDiv.innerHTML = `
+                <div id="subDrilldownContainer" style="background:#fff; width:auto; max-width:90vw; max-height:85vh; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 5px 20px rgba(0,0,0,0.4);">
+                    <div style="padding:15px 20px; background:#222; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+                        <h3 id="subDrilldownTitle" style="margin:0; font-size:16px;">Details</h3>
+                        <button id="closeSubModalBtn" style="background:transparent; border:none; color:#fff; font-size:20px; cursor:pointer;">&times;</button>
+                    </div>
+                    <div style="overflow-y:auto; flex:1;">
+                        <table style="width:auto; border-collapse:collapse; white-space:nowrap;" id="subDrilldownTable">
+                            <thead>
+                                <tr id="subDrilldownThead" style="background:#f4f4f4; border-bottom:2px solid #ddd;"></tr>
+                            </thead>
+                            <tbody id="subDrilldownTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalDiv);
+
+            document.getElementById('closeSubModalBtn').addEventListener('click', () => {
+                modalDiv.style.display = 'none';
+            });
+            window.addEventListener('click', (e) => {
+                if (e.target === modalDiv) {
+                    modalDiv.style.display = 'none';
+                }
+            });
+        }
+    });
+
+    async function openDrilldownModal(titleText, filterType) {
+        const subModal = document.getElementById('subDrilldownModal');
+        const titleEl = document.getElementById('subDrilldownTitle');
+        const tbody = document.getElementById('subDrilldownTbody');
+        const thead = document.getElementById('subDrilldownThead');
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+
+        titleEl.textContent = titleText;
+        subModal.style.display = 'flex';
+        
+        const modalContent = subModal.querySelector('.modal-content') || subModal.firstElementChild;
+        if (modalContent) {
+            modalContent.style.maxWidth = '600px';
+            modalContent.style.width = '90vw';
+            modalContent.style.borderRadius = '12px';
+            modalContent.style.overflow = 'hidden';
+            modalContent.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)';
+            modalContent.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+        }
+
+        const tableEl = thead.closest('table');
+        if (tableEl) {
+            tableEl.style.width = '100%';
+            tableEl.style.tableLayout = 'fixed';
+            tableEl.style.borderCollapse = 'separate';
+            tableEl.style.borderSpacing = '0';
+            tableEl.style.margin = '0';
+            
+            if (thead && tbody && tableEl.contains(thead) && tableEl.contains(tbody)) {
+                tableEl.insertBefore(thead, tbody);
+            }
+
+            const tableWrapper = tableEl.parentElement;
+            if (tableWrapper) {
+                tableWrapper.style.maxHeight = '65vh';
+                tableWrapper.style.overflowY = 'auto';
+                tableWrapper.style.overflowX = 'hidden';
+                tableWrapper.style.position = 'relative';
+                tableWrapper.style.backgroundColor = '#ffffff';
+            }
+        }
+
+        tbody.innerHTML = `<tr><td colspan="10" style="padding: 30px; text-align: center; font-weight: 500; font-size: 12px; color: #6b7280; background-color: #ffffff;">Loading records...</td></tr>`;
+        thead.innerHTML = "";
+
+        try {
+            let targetModule = "mika_plantilla_drilldown"; 
+            if (filterType === 'yes_mika_not_plantilla') {
+                targetModule = "mika_not_plantilla_drilldown";
+            } else if (filterType === 'yes_plantilla_not_mika') {
+                targetModule = "mika_plantilla_drilldown";
+            } else if (filterType === 'payroll_plantilla_tamad_drilldown') {
+                targetModule = "payroll_plantilla_tamad_drilldown";
+            } else if (filterType === 'payroll_plantilla_ghost_drilldown') {
+                targetModule = "payroll_plantilla_ghost_drilldown";
+            }
+
+            const targetURL = `${API}?sheetID=${sID}&module=${targetModule}&filter=${filterType}`;
+            const resp = await fetch(targetURL);
+            const jsonResponse = await resp.json();
+
+            if (jsonResponse.error) {
+                tbody.innerHTML = `<tr><td colspan="10" style="color:#ef4444; text-align:center; font-size:12px; background-color: #ffffff;">Error: ${jsonResponse.error}</td></tr>`;
+                return;
+            }
+
+            const rows = jsonResponse.rows || [];
+            if (rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color: #6b7280; font-size:12px; background-color: #ffffff;">No records found.</td></tr>`;
+                return;
+            }
+
+            let headers = Object.keys(rows[0]);
+            
+            thead.innerHTML = `<tr>` + headers.map((h, index) => {
+                const width = index === 0 ? '35%' : '65%';
+                return `<th style="position: sticky; top: 0; z-index: 100; width: ${width}; padding: 12px 14px; background-color: #111827; color: #f9fafb; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; text-align: left; border-bottom: 2px solid #374151;">${h}</th>`;
+            }).join('') + `</tr>`;
+
+            tbody.innerHTML = "";
+            rows.forEach((row, rowIndex) => {
+                const tr = document.createElement('tr');
+                const bgHover = rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb';
+                
+                tr.innerHTML = headers.map((h, index) => {
+                    const width = index === 0 ? '35%' : '65%';
+                    const val = row[h] !== undefined ? row[h] : '';
+                    const fontWeight = index === 0 ? '500' : '400';
+                    const fontColor = index === 0 ? '#1f2937' : '#4b5563';
+                    return `<td style="width: ${width}; padding: 10px 14px; border-bottom: 1px solid #f3f4f6; background-color: ${bgHover}; color: ${fontColor}; font-size: 11px; font-weight: ${fontWeight}; word-break: break-word; transition: background-color 0.15s ease;">${val}</td>`;
+                }).join('');
+                
+                tr.addEventListener('mouseenter', () => {
+                    tr.querySelectorAll('td').forEach(td => td.style.backgroundColor = '#f3f4f6');
+                });
+                tr.addEventListener('mouseleave', () => {
+                    tr.querySelectorAll('td').forEach(td => td.style.backgroundColor = bgHover);
+                });
+
+                tbody.appendChild(tr);
+            });
+
+        } catch (e) {
+            console.error("Drilldown fetch error:", e);
+            tbody.innerHTML = `<tr><td colspan="10" style="color:#ef4444; text-align:center; font-size:12px; background-color: #ffffff;">Failed to load records.</td></tr>`;
+        }
+    }
+
+    async function performUpdate(vcode) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+        
+        const rateValue = document.getElementById('updRate').value;
+        const rawDate = document.getElementById('updDateAG').value; 
+        const formattedAg = formatDateText(rawDate);
+        const ah = document.getElementById('updStatusAH').value;
+
+        openModal("UPDATING SYSTEM DATABASE", "Initializing...");
+
+        const index = masterData.findIndex(r => String(r.vcode) === String(vcode));
+        if (index !== -1) {
+            masterData[index].rate = rateValue;
+            masterData[index].date_ag = formattedAg;
+            masterData[index].status_ah = ah;
+        }
+
+        let progress = 0;
+        const speed = setInterval(() => {
+            progress += 25;
+            setModalProgress(progress, "SYNCING RECORDS...");
+            
+            if (progress >= 100) {
+                clearInterval(speed);
+                updateDisplay(masterData); 
+                closePanel();
+                setTimeout(() => {
+                    closeModal();
+                }, 400); 
+            }
+        }, 50);
+
+        fetch(`${API}?sheetID=${sID}&module=Plantilla&action=updaterecord&vcode=${vcode}&rate=${rateValue}&updateDate=${encodeURIComponent(formattedAg)}&statusAH=${ah}`)
+        .catch(err => console.error("INTERNET CONNECTION FAILED", err));
+    }
+
+    function closePanel() { document.getElementById('sidePanel').classList.remove('open'); }
+
+    function filterTable() {
+        const val = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = masterData.filter(item => 
+            Object.values(item).some(v => String(v).toLowerCase().includes(val))
+        );
+        updateDisplay(filtered);
+    }
+
+    async function runNewlyHired() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sID = urlParams.get('sheetID');
+        openModal("UPDATING", "Scanning Column AH for empty cells...");
+        setModalProgress(20, "Communicating with Google Sheets...");
+        
+        try {
+            const resp = await fetch(`${API}?sheetID=${sID}&module=Plantilla&action=marknewlyhired`);
+            const res = await resp.json();
+
+            if (res.status === 'success') {
+                setModalProgress(65, "Cells filled! Refreshing data...");
+                await loadPlantilla(); 
+                setModalProgress(100, "All empty cells updated!");
+                
+                setTimeout(() => {
+                    finishModal("UPDATED SUCCESSFULLY");
+                }, 500);
+            } else {
+                finishModal("UPDATE FAILED");
+            }
+        } catch (e) { 
+            console.error(e);
+            finishModal("INTERNET CONNECTION ERROR");
+        }
+    }
+
+    function printTable() { window.print(); }
+
+    function runExport(fmt) {
+        const exportData = masterData.map(r => ({CLIENT: r.client, VCODE: r.vcode, EMPLOC: r.emploc, NAME: r.name, POSITION: r.position, OUTLET: r.outlet, HC: r.hc, STATUS: r.status }));
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
+        XLSX.writeFile(wb, `Plantilla_Data.${fmt}`);
+    }
+
+    function openModal(t, m) { 
+        document.getElementById('statusModal').style.display = 'flex'; 
+        document.getElementById('modalTitle').innerText = t; 
+        setModalProgress(0, m);
+        document.getElementById('modalCloseBtn').style.display='none'; 
+    }
+
+    function setModalProgress(percent, msg) {
+        const p = Math.min(percent, 100);
+        document.getElementById('progressBar').style.width = p + '%';
+        document.getElementById('percentLabel').innerText = p + '%';
+        document.getElementById('modalMsg').innerText = msg;
+    }
+
+    function triggerRefresh() {
+        openModal("Refreshing", "Please wait a moment...");
+        loadPlantilla().then(() => finishModal("REFRESH SUCCESSFUL"));
+    }
+
+    function closeModal() {
+        document.getElementById('statusModal').style.display = 'none';
+    }
+
+    function finishModal(m) { 
+        document.getElementById('modalTitle').innerText = m; 
+        document.getElementById('progressBar').style.width = '100%'; 
+        document.getElementById('percentLabel').innerText = '100%';
+        document.getElementById('modalCloseBtn').style.display = 'block'; 
+    }
+
+    window.onload = loadPlantilla;
+</script>
+</body>
+</html>

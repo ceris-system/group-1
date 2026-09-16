@@ -1,0 +1,165 @@
+<style>
+    /* --- Modal Container & Glass Effect --- */
+    .glass-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(8px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .glass-modal-content {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        width: 90%;
+        max-width: 600px;
+        padding: 40px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* --- Centering the Header --- */
+    .announcement-module .centered-header {
+        text-align: center;
+        margin-bottom: 25px;
+        border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+        padding-bottom: 15px;
+    }
+
+    .announcement-module .liquid-title {
+        display: inline-block;
+        color: #00e5ff;
+        text-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+        letter-spacing: 4px;
+        font-size: 1.8rem;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    /* --- The Scrolling Mechanism --- */
+    .announcement-scroller {
+        width: 100%;
+        height: 250px;
+        overflow: hidden;
+        position: relative;
+        /* Creates the fade effect top and bottom */
+        mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+    }
+
+    .announcement-content {
+        display: flex;
+        flex-direction: column;
+        animation: scrollUp 15s linear infinite;
+    }
+
+    .announcement-content:hover {
+        animation-play-state: paused;
+    }
+
+    /* --- Styled List Items --- */
+    .announcement-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .glass-li {
+        display: flex;
+        align-items: center;
+        color: #ffffff; /* White text for better contrast on glass */
+        font-weight: 600;
+        padding: 12px 10px;
+        font-size: 1rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .accent-red {
+        color: #ff1744;
+        margin-right: 15px;
+        font-size: 1.2rem;
+        filter: drop-shadow(0 0 5px #ff1744);
+    }
+
+    /* --- Footer Section --- */
+    .modal-footer {
+        text-align: center;
+        margin-top: 30px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 20px;
+    }
+
+    .info-span {
+        display: block;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+    }
+
+    .thank-you-text {
+        display: block;
+        font-weight: bold;
+        letter-spacing: 3px;
+        color: #ffffff;
+        margin: 10px 0;
+    }
+
+    .system-title {
+        display: block;
+        color: #00e5ff; /* Cyan accent for consistency */
+        letter-spacing: 3px;
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    @keyframes scrollUp {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-50%); }
+    }
+</style>
+
+<div class="glass-modal-overlay">
+    <div class="glass-modal-content announcement-module">
+        
+        <div class="centered-header">
+            <h2 class="liquid-title">📢 Reminders</h2>
+        </div>
+
+        <div class="announcement-scroller">
+            <div class="announcement-content">
+                <ul class="announcement-list">
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> PLEASE UPDATE YOUR VACANCY</li>
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> CHECK THE VACANT DATE IF ITS CORRECT</li>
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> DONT FORGET TO UPDATE YOUR VACANCY AND HR EMPLOC REMARKS</li>
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> ALWAYS CLICK THE NEWLY HIRED BUTTON IN YOUR PLANTILLA</li>
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> CHECK THE MANNING VACANCY TO AVOID INDIFFERENCE</li>
+                </ul>
+                <ul class="announcement-list">
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> PLEASE UPDATE YOUR VACANCY</li>
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> CHECK THE VACANT DATE IF ITS CORRECT</li>
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> DONT FORGET TO UPDATE YOUR VACANCY AND HR EMPLOC REMARKS</li>
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> ALWAYS CLICK THE NEWLY HIRED BUTTON IN YOUR PLANTILLA</li>
+                    <li class="glass-li"><i class="fas fa-caret-right accent-red"></i> CHECK THE MANNING VACANCY TO AVOID INDIFFERENCE</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <span class="info-span">IF YOU HAVE ANY CONCERN KINDLY APPROACH YOUR GROUP ADMIN</span>
+            <span class="thank-you-text">THANK YOU</span>
+            <span class="system-title">C.E.R.I.S SYSTEM DATABASE</span>
+        </div>
+
+    </div>
+</div>
