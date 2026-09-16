@@ -2,8 +2,7 @@
  * C.E.R.I.S System - Main External Logic
  */
 
-const API_URL = window.API;
-const API_TOKEN = window.API_TOKEN;
+const API_URL = window.API || "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
 
 async function handleAction(action) {
     const user = document.getElementById('userInput').value;
@@ -11,7 +10,7 @@ async function handleAction(action) {
     
     if(!user) return showModal("REQUIRED", "Please enter your Identity Code.", "error");
 
-    const body = { action: action, user: user, token: API_TOKEN };
+    const body = { action: action, user: user };
 
     if (action === 'login') {
         body.pass = passInputEl.value;
@@ -19,13 +18,6 @@ async function handleAction(action) {
         const newPass = document.getElementById('newPassInput').value;
         if (!newPass) return showModal("REQUIRED", "Please enter a new password.", "error");
         body.newPass = newPass;
-        // The backend's updateUserCredentials() needs to know WHICH row to
-        // touch (rowIndex, captured from the earlier login's REQUIRE_UPDATE
-        // response) and needs a username to keep (newUser) or it will blank
-        // the username cell out. Both were previously never sent, so every
-        // "set your new password" submission silently failed.
-        body.rowIndex = window.sessionRowIndex;
-        body.newUser = window.sessionUser || user;
     }
 
     // Show the sea wave progress bar when processing starts
@@ -43,8 +35,8 @@ async function handleAction(action) {
 
         if (data.success) {
             window.sessionUser = user;
-            window.sessionBridges = data.bridges || {};
-            localStorage.setItem("userBridges", JSON.stringify(window.sessionBridges));
+            window.sessionBridges = data.bridges;
+            localStorage.setItem("userBridges", JSON.stringify(data.bridges));
 
             const currentStatus = data.status ? data.status.toUpperCase() : "";
 
@@ -52,17 +44,13 @@ async function handleAction(action) {
                 showDashboard(data.clientName || user);
                 filterIcons();
                 if (action === 'updatePassword') showModal("SECURED", "Access key updated.", "success");
-            } else if (currentStatus === 'REQUIRE_UPDATE') {
-                // Backend sends REQUIRE_UPDATE (not "DEFAULT") for a
-                // default-password account. Keep the row reference so the
-                // follow-up updatePassword call above can use it.
-                window.sessionRowIndex = data.rowIndex;
+            } else if (currentStatus === 'DEFAULT') {
                 document.getElementById('cardInner').classList.add('flipped');
             } else {
-                showModal("RESTRICTED", data.message || "Account locked.", "lock");
+                showModal("RESTRICTED", "Account locked.", "lock");
             }
         } else {
-            showModal("ACCESS DENIED", data.error || data.message || "Invalid credentials.", "error");
+            showModal("ACCESS DENIED", data.error || "Invalid credentials.", "error");
         }
     } catch (error) {
         showModal("CONNECTION LOST", "PLEASE CHECK INTERNET CONNECTION", "error");
@@ -70,96 +58,6 @@ async function handleAction(action) {
         if (typeof hideSeaWaveLoader === 'function') {
             hideSeaWaveLoader();
         }
-    }
-}
-
-/**
- * "Back to Login" button on the default-password (register) flip face.
- */
-function backToLogin() {
-    document.getElementById('cardInner').classList.remove('flipped');
-}
-
-/**
- * FORGOT PASSWORD FLOW
- * Step 1: verify the username exists (action: forgotPassword) and get
- *         back the rowIndex needed to update it.
- * Step 2: submit a new password (reuses the updatePassword action),
- *         which writes directly to the USERDB spreadsheet row.
- */
-function openForgotPassword() {
-    document.getElementById('forgotStep1').style.display = 'block';
-    document.getElementById('forgotStep2').style.display = 'none';
-    document.getElementById('forgotUserInput').value = '';
-    document.getElementById('forgotNewPassInput').value = '';
-    document.getElementById('forgotModal').style.display = 'flex';
-}
-
-function closeForgotModal() {
-    document.getElementById('forgotModal').style.display = 'none';
-}
-
-async function submitForgotUsername() {
-    const user = document.getElementById('forgotUserInput').value.trim();
-    if (!user) return showModal("REQUIRED", "Please enter your Identity Code.", "error");
-
-    if (typeof showSeaWaveLoader === 'function') showSeaWaveLoader("VERIFYING ACCOUNT...");
-
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({ action: "forgotPassword", user: user, token: API_TOKEN })
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            window.sessionForgotUser = user;
-            window.sessionForgotRowIndex = data.rowIndex;
-            document.getElementById('forgotStep1').style.display = 'none';
-            document.getElementById('forgotStep2').style.display = 'block';
-        } else {
-            showModal("NOT FOUND", data.error || "We couldn't verify that account.", "error");
-        }
-    } catch (error) {
-        showModal("CONNECTION LOST", "PLEASE CHECK INTERNET CONNECTION", "error");
-    } finally {
-        if (typeof hideSeaWaveLoader === 'function') hideSeaWaveLoader();
-    }
-}
-
-async function submitForgotReset() {
-    const newPass = document.getElementById('forgotNewPassInput').value;
-    if (!newPass) return showModal("REQUIRED", "Please enter a new password.", "error");
-    if (!window.sessionForgotUser || !window.sessionForgotRowIndex) {
-        return showModal("SESSION EXPIRED", "Please start the Forgot Password process again.", "error");
-    }
-
-    if (typeof showSeaWaveLoader === 'function') showSeaWaveLoader("UPDATING SPREADSHEET...");
-
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({
-                action: "updatePassword",
-                user: window.sessionForgotUser,
-                newUser: window.sessionForgotUser,
-                newPass: newPass,
-                rowIndex: window.sessionForgotRowIndex,
-                token: API_TOKEN
-            })
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            closeForgotModal();
-            showModal("SECURED", "Your password was reset and the spreadsheet has been updated. You can log in now.", "success");
-        } else {
-            showModal("ERROR", data.error || data.message || "Could not reset your password.", "error");
-        }
-    } catch (error) {
-        showModal("CONNECTION LOST", "PLEASE CHECK INTERNET CONNECTION", "error");
-    } finally {
-        if (typeof hideSeaWaveLoader === 'function') hideSeaWaveLoader();
     }
 }
 
@@ -197,20 +95,7 @@ function showModal(title, message, type) {
     modal.style.display = 'flex';
 }
 
-async function logoutSystem() {
-    // Previously this only cleared localStorage and reloaded - the backend's
-    // "logout" action (which logs session duration to LOGIN_LOGS) was never
-    // actually called.
-    if (window.sessionUser) {
-        try {
-            await fetch(API_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "logout", user: window.sessionUser, token: API_TOKEN })
-            });
-        } catch (err) {
-            console.log("Logout log failed (continuing anyway):", err);
-        }
-    }
+function logoutSystem() {
     localStorage.removeItem("userBridges");
     window.location.reload();
 }
@@ -232,7 +117,7 @@ async function runBufferPlusMinus() {
     }
 
     try {
-        const targetURL = `${API_URL}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${encodeURIComponent(bufferBridgeID)}&module=${encodeURIComponent("5_buffer")}`;
+        const targetURL = `${API_URL}?sheetID=${encodeURIComponent(bufferBridgeID)}&module=${encodeURIComponent("5_buffer")}`;
         
         const response = await fetch(targetURL, {
             method: "GET",

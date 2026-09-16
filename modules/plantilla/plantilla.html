@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="../../universal.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf-plugin-autotable.min.js"></script>
@@ -669,8 +668,7 @@
 </div>
 
 <script>
-    const API = window.API || (window.parent && window.parent.API);
-    const API_TOKEN = window.API_TOKEN || (window.parent && window.parent.API_TOKEN);
+    const API = window.parent.API;
     let masterData = [];
 
     function formatDateText(dateStr) {
@@ -719,7 +717,7 @@
             }, 150);
 
             updateInitialProgress(30);
-            const resp = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sID}&module=Plantilla`);
+            const resp = await fetch(`${API}?sheetID=${sID}&module=Plantilla`);
             
             updateInitialProgress(75);
             const rawData = await resp.json();
@@ -1121,7 +1119,7 @@
         </tr>`;
 
         try {
-            const vcodeResp = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sID}&module=vcode masterlist`);
+            const vcodeResp = await fetch(`${API}?sheetID=${sID}&module=vcode masterlist`);
             const vcodeData = await vcodeResp.json();
 
             const summaryMap = {};
@@ -1187,7 +1185,7 @@
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px; color:#000;">LOADING TACTICAL DATABASE...</td></tr>`;
 
         try {
-            const resp = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sID}&module=vcode masterlist`);
+            const resp = await fetch(`${API}?sheetID=${sID}&module=vcode masterlist`);
             const rawData = await resp.json();
             
             let loadedData = Array.isArray(rawData) ? rawData : (rawData.data || []);
@@ -1404,7 +1402,7 @@
         }
 
         try {
-            const targetURL = `${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sID}&module=5_buffer`;
+            const targetURL = `${API}?sheetID=${sID}&module=5_buffer`;
             const resp = await fetch(targetURL);
             const jsonResponse = await resp.json();
 
@@ -1543,7 +1541,7 @@
         tbody.innerHTML = `<tr><td colspan="5" style="padding: 20px; text-align: center;">Fetching Vcode Variance records...</td></tr>`;
 
         try {
-            const resp = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sID}&module=vcode_variance`);
+            const resp = await fetch(`${API}?sheetID=${sID}&module=vcode_variance`);
             const data = await resp.json();
 
             if (data.error) {
@@ -1656,15 +1654,14 @@
         }
 
         try {
-            const response = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${encodeURIComponent(sID)}&module=vcode_variance&action=transfer`, {
+            const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=vcode_variance&action=transfer`, {
                 method: "POST",
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify({ 
                     vcodes: selectedVcodes,
                     targetSpreadsheetID: "1GRNJbY1xoLuhrCVOduSo9DBACseMHJa9s5l5W4rOc5Y",
                     targetSheet: "VACANCY",
-                    userEmail: currentUserEmail,
-                    token: API_TOKEN
+                    userEmail: currentUserEmail
                 })
             });
 
@@ -1717,14 +1714,13 @@
             }
 
             try {
-                const response = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${encodeURIComponent(sID)}&module=vcode_variance&action=delete`, {
+                const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=vcode_variance&action=delete`, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ 
                         vcodes: vcodesToDelete,
                         targetSpreadsheetID: "1GRNJbY1xoLuhrCVOduSo9DBACseMHJa9s5l5W4rOc5Y",
-                        userEmail: currentUserEmail,
-                        token: API_TOKEN
+                        userEmail: currentUserEmail
                     })
                 });
 
@@ -1895,7 +1891,7 @@
                 targetModule = "payroll_plantilla_ghost_drilldown";
             }
 
-            const targetURL = `${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sID}&module=${targetModule}&filter=${filterType}`;
+            const targetURL = `${API}?sheetID=${sID}&module=${targetModule}&filter=${filterType}`;
             const resp = await fetch(targetURL);
             const jsonResponse = await resp.json();
 
@@ -1979,7 +1975,7 @@
             }
         }, 50);
 
-        fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sID}&module=Plantilla&action=updaterecord&vcode=${vcode}&rate=${rateValue}&updateDate=${encodeURIComponent(formattedAg)}&statusAH=${ah}`)
+        fetch(`${API}?sheetID=${sID}&module=Plantilla&action=updaterecord&vcode=${vcode}&rate=${rateValue}&updateDate=${encodeURIComponent(formattedAg)}&statusAH=${ah}`)
         .catch(err => console.error("INTERNET CONNECTION FAILED", err));
     }
 
@@ -2000,7 +1996,7 @@
         setModalProgress(20, "Communicating with Google Sheets...");
         
         try {
-            const resp = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sID}&module=Plantilla&action=marknewlyhired`);
+            const resp = await fetch(`${API}?sheetID=${sID}&module=Plantilla&action=marknewlyhired`);
             const res = await resp.json();
 
             if (res.status === 'success') {

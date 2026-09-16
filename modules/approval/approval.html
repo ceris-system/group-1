@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="../../universal.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Approval Module</title>
@@ -457,11 +456,11 @@
                 const clientHeaderParam = urlParams.get('clientHeader') || "";
                 const searchFilterVal = document.getElementById('filterSearch').value || "";
                 
-                const parentAPI = window.API || (window.parent && window.parent.API);
-                const parentToken = window.API_TOKEN || (window.parent && window.parent.API_TOKEN);
+                const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
+                    : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
                 
                 setLoaderProgress(50, "FETCHING SERVER DATA");
-                const response = await fetch(`${parentAPI}?token=${encodeURIComponent(parentToken)}&sheetID=${sheetID}&module=for_approval&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
+                const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=for_approval&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
                 const jsonResponse = await response.json();
 
                 if (jsonResponse.error) {
@@ -592,8 +591,8 @@
             setLoaderProgress(5, `0 OUT OF ${totalCount} APPROVED`);
 
             try {
-                const parentAPI = window.API || (window.parent && window.parent.API);
-                const parentToken = window.API_TOKEN || (window.parent && window.parent.API_TOKEN);
+                const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
+                    : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
                 
                 let successCount = 0;
                 for (let i = 0; i < selectedVcodes.length; i++) {
@@ -605,9 +604,9 @@
                         `${currentDisplayNum} OUT OF ${totalCount} APPROVED (MOVE TO HR EMPLOC)`
                     );
 
-                    const response = await fetch(`${parentAPI}?token=${encodeURIComponent(parentToken)}&sheetID=${sheetID}&module=for_approval&action=approve`, {
+                    const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=for_approval&action=approve`, {
                         method: 'POST',
-                        body: JSON.stringify({ vcodes: [currentVcode], token: parentToken })
+                        body: JSON.stringify({ vcodes: [currentVcode] })
                     });
                     const result = await response.json();
                     

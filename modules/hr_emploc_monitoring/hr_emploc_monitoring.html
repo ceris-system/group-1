@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="../../universal.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Emploc Monitoring Module</title>
@@ -650,10 +649,10 @@
                     const clientHeaderParam = urlParams.get('clientHeader') || "";
                     const searchFilterVal = document.getElementById('filterSearch').value || "";
                     
-                    const parentAPI = window.API || (window.parent && window.parent.API);
-                    const parentToken = window.API_TOKEN || (window.parent && window.parent.API_TOKEN);
+                    const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
+                        : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
                     
-                    const response = await fetch(`${parentAPI}?token=${encodeURIComponent(parentToken)}&sheetID=${sheetID}&module=hr_emploc_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
+                    const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=hr_emploc_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
                     const jsonResponse = await response.json();
 
                     if (jsonResponse.error) {
@@ -783,15 +782,13 @@
         async function updateEmplocRecord() {
             const payload = {
                 vcode: activeVcode,
-                remarks: document.getElementById('drawerRemarks').value,
-                token: (window.API_TOKEN || (window.parent && window.parent.API_TOKEN))
+                remarks: document.getElementById('drawerRemarks').value
             };
             simulateProgress(async (finishProgress) => {
                 try {
-                    const parentAPI = window.API || (window.parent && window.parent.API);
-                    const parentToken = window.API_TOKEN || (window.parent && window.parent.API_TOKEN);
+                    const parentAPI = (window.parent && window.parent.API) ? window.parent.API : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
                     
-                    const response = await fetch(`${parentAPI}?token=${encodeURIComponent(parentToken)}&sheetID=${sheetID}&module=hr_emploc_monitoring&action=updaterecord`, {
+                    const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=hr_emploc_monitoring&action=updaterecord`, {
                         method: 'POST',
                         body: JSON.stringify(payload)
                     });

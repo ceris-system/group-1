@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="../../universal.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vacancy Monitoring Module</title>
@@ -632,8 +631,6 @@
     </div>
 
     <script>
-        const API = window.API || (window.parent && window.parent.API);
-        const API_TOKEN = window.API_TOKEN || (window.parent && window.parent.API_TOKEN);
         const urlParams = new URLSearchParams(window.location.search);
         const sheetID = urlParams.get('sheetID');
         let globalVacancyData = [];
@@ -719,7 +716,7 @@
                     const sheetID = urlParams.get('sheetID');
                     const clientHeaderParam = urlParams.get('clientHeader') || "";
 
-                    const response = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sheetID}&module=vacancy_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}`);
+                    const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=vacancy_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}`);
                     const jsonResponse = await response.json();
 
                     if (jsonResponse.error) {
@@ -842,7 +839,7 @@
 
         async function loadDeployerDropdowns() {
             try {
-                const response = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sheetID}&module=deployer_list`);
+                const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=deployer_list`);
                 const data = await response.json();
                 
                 if (data && data.deployers && data.coordinators) {
@@ -943,13 +940,12 @@
                 reliever: document.getElementById('drawerReliever').value,
                 remarks: document.getElementById('drawerRemarks').value,
                 coordinator: document.getElementById('drawerCoordinator').value,
-                deployedBy: document.getElementById('drawerDeployedBy').value,
-                token: API_TOKEN
+                deployedBy: document.getElementById('drawerDeployedBy').value
             };
 
             simulateProgress(async (finishProgress) => {
                 try {
-                    const response = await fetch(`${API}?token=${encodeURIComponent(API_TOKEN)}&sheetID=${sheetID}&module=vacancy_monitoring&action=updaterecord`, {
+                    const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=vacancy_monitoring&action=updaterecord`, {
                         method: 'POST',
                         body: JSON.stringify(payload)
                     });
