@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="BETA.png">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="universal.js"></script>
     <style>
         /* Dynamic background styling for the whole page body */
         body {
@@ -169,6 +170,7 @@
                     </div>
                 </div>
                 <button onclick="handleAction('login')">VERIFY</button>
+                <button type="button" class="link-btn" onclick="openForgotPassword()">Forgot Password?</button>
             </div>
 
             <div class="glass-card register-face">
@@ -183,7 +185,37 @@
                     </div>
                 </div>
                 <button onclick="handleAction('updatePassword')">UPDATE & ENTER</button>
+                <button type="button" class="link-btn" onclick="backToLogin()">&larr; Back to Login</button>
             </div>
+        </div>
+    </div>
+
+    <div id="forgotModal" class="modal-overlay">
+        <div class="glass-card modal-content">
+            <h2>FORGOT PASSWORD</h2>
+
+            <div id="forgotStep1">
+                <p style="font-size: 0.8rem; text-align: center; opacity: 0.7; margin-bottom: 20px;">Enter your Identity Code and we'll check your account.</p>
+                <div class="input-group">
+                    <p class="field-header">Username</p>
+                    <input type="text" id="forgotUserInput" placeholder="Identity code">
+                </div>
+                <button onclick="submitForgotUsername()">CONTINUE</button>
+            </div>
+
+            <div id="forgotStep2" style="display:none;">
+                <p style="font-size: 0.8rem; text-align: center; opacity: 0.7; margin-bottom: 20px;">Account verified. Set a new access key below — this updates your record directly.</p>
+                <div class="input-group">
+                    <p class="field-header">New Password</p>
+                    <div class="password-wrapper">
+                        <input type="password" id="forgotNewPassInput" placeholder="Min 8 characters">
+                        <i class="fa-solid fa-eye toggle-password" style="color: rgb(0, 145, 255);" onclick="togglePass('forgotNewPassInput')"></i>
+                    </div>
+                </div>
+                <button onclick="submitForgotReset()">RESET & SAVE</button>
+            </div>
+
+            <button type="button" class="link-btn" onclick="closeForgotModal()">Cancel</button>
         </div>
     </div>
 
@@ -226,9 +258,9 @@
     </div>
 
     <script>
-        // Configuration
-        window.API = "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
-        
+        // window.API / window.API_TOKEN now come from universal.js (loaded in <head>)
+        // instead of being hardcoded here a second time.
+
         // Local UI Logic
         function togglePass(id) {
             const input = document.getElementById(id);
@@ -288,32 +320,10 @@
             });
         }
 
-        // Module Loader via Iframe Bridge
-        async function openModule(folderName) {
-            const container = document.getElementById('tableView');
-            const titleElement = document.getElementById('activeModuleTitle');
-            if (titleElement) titleElement.innerText = folderName.replace(/_/g, ' ').toUpperCase();
-
-            // Toggle background video: ON only for announcement, OFF (pure white background) for all other modules
-            if (folderName === 'announcement') {
-                setBackgroundVideoState(true);
-                container.innerHTML = `<iframe src="modules/announcement/announcement.html" style="width:100%; height:100%; border:none;"></iframe>`;
-                return;
-            } else {
-                setBackgroundVideoState(false);
-            }
-
-            const btn = document.querySelector(`[data-bridge="${folderName}"]`);
-            const bridgeKey = btn ? btn.getAttribute('data-bridge') : folderName;
-            const targetSheetID = window.sessionBridges ? window.sessionBridges[bridgeKey] : "";
-            
-            // GRAB THE CURRENT CLIENT HEADER TEXT FROM THE PAGE DISPLAY
-            const currentClientHeader = document.getElementById('clientHeader').innerText || "";
-            
-            // Ensures the directory path matches the module identifier exactly
-            const iframeUrl = `modules/${folderName}/${folderName}.html?sheetID=${targetSheetID}&user=${window.sessionUser}&clientHeader=${encodeURIComponent(currentClientHeader)}`;
-            container.innerHTML = `<iframe src="${iframeUrl}" style="width:100%; height:100%; border:none;"></iframe>`;
-        }
+        // NOTE: openModule() lives in script.js (the canonical version, with the
+        // hr_emploc_monitoring bridge fallback). It used to also be defined here,
+        // which meant two different implementations of the same global function
+        // silently competed with each other depending on script load order.
     </script>
     <script src="script.js"></script>
 </body>
