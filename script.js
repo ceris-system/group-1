@@ -211,7 +211,7 @@ function restoreSessionFromStorage() {
     if (authContainer) authContainer.style.display = 'none';
 
     const clientHeader = document.getElementById('clientHeader');
-    if (clientHeader) clientHeader.innerText = (savedUser || 'SYSTEM').toUpperCase() + ' SYSTEM';
+    if (clientHeader) clientHeader.innerText = (savedUser || 'SYSTEM').toUpperCase() + '';
 
     const displayUsername = document.getElementById('displayUsername');
     if (displayUsername) displayUsername.innerText = getTimeGreeting() + ', ' + savedUser.toUpperCase();

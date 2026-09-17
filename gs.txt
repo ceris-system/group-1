@@ -12,9 +12,9 @@ function doGet(e) {
     const clientSS = SpreadsheetApp.openById(sheetID);
 
     // --- PLANTILLA DEACTIVATION LOOKUP ---
-    if (moduleName === "deactivation" && action === "lookup") {
+    if (moduleName === "deactivation" && (action === "lookup" || action === "list")) {
       const emploc = String(e.parameter.emploc || "").trim();
-      if (!emploc) return msg({ error: "EMPLOC is required" });
+      if (action === "lookup" && !emploc) return msg({ error: "EMPLOC is required" });
 
       const masterSS = SpreadsheetApp.openById("15R18IM11tQHdih52xuxn0pwT9YFPVZLT0ispX8uzjKg");
       const userDB = masterSS.getSheetByName("UserDB");
@@ -22,8 +22,12 @@ function doGet(e) {
 
       const userRows = userDB.getRange(2, 1, Math.max(userDB.getLastRow() - 1, 0), 13).getValues();
       let mikaSpreadsheetID = "";
+      let clientName = "";
+      let clientSheetName = "";
       for (let i = 0; i < userRows.length; i++) {
         if (String(userRows[i][5] || "").trim() === String(sheetID).trim()) {
+          clientName = String(userRows[i][4] || "").trim();
+          clientSheetName = String(userRows[i][3] || "").trim();
           mikaSpreadsheetID = String(userRows[i][11] || "").trim(); // UserDB column L
           break;
         }
@@ -31,10 +35,20 @@ function doGet(e) {
       if (!mikaSpreadsheetID) return msg({ error: "No lookup spreadsheet is mapped in UserDB column L" });
 
       const mikaSS = SpreadsheetApp.openById(mikaSpreadsheetID);
-      const mikaSheet = mikaSS.getSheets().find(sheet => sheet.getName().trim().toLowerCase() === "mika file");
-      if (!mikaSheet) return msg({ error: "Sheet 'mika file' not found" });
+      const normalizedClientName = clientName.toUpperCase();
+      const foreverDiserClients = ["GMA NORTH", "NCL", "GMA SOUTH", "SOUTH LUZON"];
+      const targetSheetName = action === "list"
+        ? (foreverDiserClients.some(name => normalizedClientName.includes(name)) ? "FOREVER DISER" : clientSheetName)
+        : "mika file";
+      const mikaSheet = mikaSS.getSheets().find(sheet => sheet.getName().trim().toLowerCase() === targetSheetName.toLowerCase());
+      if (!mikaSheet) return msg({ error: `Sheet '${targetSheetName}' not found` });
 
       const lastRow = mikaSheet.getLastRow();
+      if (action === "list") {
+        if (lastRow < 2) return msg({ success: true, rows: [] });
+        return msg({ success: true, rows: mikaSheet.getRange(2, 1, lastRow - 1, 4).getDisplayValues() });
+      }
+
       if (lastRow < 1) return msg({ error: "No records found in mika file" });
 
       const rows = mikaSheet.getRange(1, 1, lastRow, 2).getDisplayValues();
@@ -720,8 +734,10 @@ function doPost(e) {
       const rows = userDB.getRange(2, 1, Math.max(userDB.getLastRow() - 1, 0), 13).getValues();
       let targetSpreadsheetID = "";
       let clientSheetName = "";
+      let clientName = "";
       for (let i = 0; i < rows.length; i++) {
         if (String(rows[i][5] || "").trim() === String(sheetID).trim()) {
+          clientName = String(rows[i][4] || "").trim(); // Column E: client name
           clientSheetName = String(rows[i][3] || "").trim(); // Column D
           targetSpreadsheetID = String(rows[i][11] || "").trim(); // Column L
           break;
@@ -730,7 +746,13 @@ function doPost(e) {
       if (!targetSpreadsheetID) return msg({ status: "error", message: "No deactivation spreadsheet is mapped in UserDB column L" });
 
       const targetSS = SpreadsheetApp.openById(targetSpreadsheetID);
-      const targetSheet = targetSS.getSheetByName(clientSheetName) || targetSS.getSheetByName("DEACTIVATION") || targetSS.getSheetByName("Deactivation");
+      const normalizedClientName = clientName.toUpperCase();
+      const foreverDiserClients = ["GMA NORTH", "NCL", "GMA SOUTH", "SOUTH LUZON"];
+      const useForeverDiserSheet = foreverDiserClients.some(name => normalizedClientName.includes(name));
+      const targetSheetName = useForeverDiserSheet ? "FOREVER DISER" : clientSheetName;
+      const targetSheet = targetSS.getSheetByName(targetSheetName)
+        || targetSS.getSheetByName("DEACTIVATION")
+        || targetSS.getSheetByName("Deactivation");
       if (!targetSheet) return msg({ status: "error", message: "Client deactivation sheet not found" });
 
       targetSheet.appendRow([emploc, fullName, status, inactiveDate]);

@@ -61,6 +61,19 @@
             border: 1px solid #444; color: #fff; font-family: inherit; font-size: 12px;
         }
         .deactivation-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+        #deactivationModal .deactivation-card,
+        #deactivationModal .deactivation-card table,
+        #deactivationModal .deactivation-card th,
+        #deactivationModal .deactivation-card td {
+            color: #ffffff;
+        }
+        #deactivationModal .deactivation-card th {
+            background: #333;
+        }
+        #deactivationModal .deactivation-actions .action-btn:first-child {
+            color: #ffffff;
+            border-color: #ffffff;
+        }
         @media screen and (max-width: 700px) {
             .deactivation-grid { grid-template-columns: 1fr 1fr; }
         }
@@ -460,7 +473,6 @@
     <div class="deactivation-card">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:18px;">
             <h2 style="margin:0; color:var(--neon-red); font-size:16px;">SYSTEM FOR DEACTIVATION</h2>
-            <button type="button" class="close-btn" onclick="closeDeactivationModal()">&times;</button>
         </div>
         <div class="deactivation-grid">
             <div class="deactivation-field">
@@ -488,6 +500,14 @@
             </div>
         </div>
         <div id="deactivationMessage" style="min-height:18px; margin-top:12px; color:#8ca2c0; font-size:11px;"></div>
+        <div style="max-height:260px; overflow:auto; margin-top:12px; border:1px solid #333;">
+            <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <thead style="position:sticky; top:0; background:#333; color:#fff;">
+                    <tr><th style="padding:8px; text-align:left;">EMPLOC</th><th style="padding:8px; text-align:left;">FULL NAME</th><th style="padding:8px; text-align:left;">STATUS</th><th style="padding:8px; text-align:left;">INACTIVE DATE</th></tr>
+                </thead>
+                <tbody id="deactivationPendingBody"></tbody>
+            </table>
+        </div>
         <div class="deactivation-actions">
             <button type="button" class="action-btn" onclick="closeDeactivationModal()">CLOSE</button>
             <button type="button" class="action-btn" onclick="saveDeactivationRecord()" style="border-color:#00e5ff; color:#00e5ff;">SAVE TO DEACTIVATION</button>
@@ -2102,7 +2122,26 @@
 
     function openDeactivationModal() {
         document.getElementById('deactivationModal').style.display = 'flex';
+        loadPendingDeactivationRecords();
         document.getElementById('deactivationEmploc').focus();
+    }
+
+    async function loadPendingDeactivationRecords() {
+        const body = document.getElementById('deactivationPendingBody');
+        const message = document.getElementById('deactivationMessage');
+        body.innerHTML = '<tr><td colspan="4" style="padding:12px;">FETCHING PENDING RECORDS...</td></tr>';
+        try {
+            const sID = new URLSearchParams(window.location.search).get('sheetID');
+            const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=deactivation&action=list`);
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Pending records could not be loaded');
+            body.innerHTML = result.rows.length
+                ? result.rows.map(row => `<tr><td style="padding:8px;">${row[0] || ''}</td><td style="padding:8px;">${row[1] || ''}</td><td style="padding:8px;">${row[2] || ''}</td><td style="padding:8px;">${row[3] || ''}</td></tr>`).join('')
+                : '<tr><td colspan="4" style="padding:12px;">NO PENDING RECORDS</td></tr>';
+        } catch (error) {
+            body.innerHTML = `<tr><td colspan="4" style="padding:12px; color:#f52004;">${error.message || 'FETCH FAILED'}</td></tr>`;
+            message.innerText = error.message || 'Pending records fetch failed.';
+        }
     }
 
     function closeDeactivationModal() {
@@ -2137,7 +2176,7 @@
             if (!result.success) throw new Error(result.error || 'EMPLOC not found');
 
             document.getElementById('deactivationFullName').value = result.fullName || '';
-            message.innerText = 'EMPLOC FOUND.';
+            message.innerText = 'EMPLOC FOUND WITH ACTIVE STATUS...';
         } catch (error) {
             document.getElementById('deactivationFullName').value = '';
             message.innerText = error.message || 'EMPLOC lookup failed.';
