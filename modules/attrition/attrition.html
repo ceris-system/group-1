@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Attrition Database</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --ink:#101722; --navy:#17263a; --blue:#2f80ed; --sky:#eaf2fb; --line:#cbd7e5; --muted:#617084; --white:#ffffff; }
+        * { box-sizing:border-box; }
+        body { margin:0; min-height:100vh; background:#f4f7fb; color:var(--ink); font:12px 'Roboto Mono',monospace; }
+        .page { padding:18px; max-width:1900px; margin:0 auto; }
+        .header, .toolbar { display:flex; align-items:center; gap:10px; background:var(--white); border:1px solid var(--line); padding:12px 14px; box-shadow:0 4px 14px rgba(23,38,58,.06); }
+        .header { min-height:54px; border-top:4px solid var(--blue); }
+        h1 { margin:0 auto 0 0; color:var(--navy); font-size:16px; letter-spacing:.5px; }
+        .mode-label { border:1px solid #9cc2f5; border-radius:4px; color:var(--blue); background:#f1f7ff; padding:5px 8px; font-size:10px; }
+        button { min-height:32px; padding:7px 13px; border:1px solid #aebed0; border-radius:4px; background:var(--white); color:var(--navy); cursor:pointer; font:10px 'Roboto Mono',monospace; font-weight:700; }
+        button:hover { border-color:var(--blue); color:var(--blue); }
+        button.active { background:var(--blue); border-color:var(--blue); color:var(--white); }
+        button:disabled { opacity:.55; cursor:wait; }
+        .toolbar { margin-top:12px; min-height:58px; }
+        input, select { height:34px; border:1px solid #b9c8d8; border-radius:4px; background:var(--white); color:var(--ink); padding:7px 9px; font:11px 'Roboto Mono',monospace; }
+        input:focus, select:focus { outline:2px solid #c9def9; border-color:var(--blue); }
+        #search, #month { flex:1; min-width:190px; }
+        #weekly { display:none; flex:1; gap:8px; align-items:center; }
+        #weekly input { flex:1; min-width:120px; }
+        #refresh { border-color:var(--blue); color:var(--blue); }
+        #export { border-color:#1e9b68; color:#16734e; }
+        .progress { height:8px; margin-top:14px; border-radius:8px; background:#dce6f0; overflow:hidden; }
+        #progressBar { width:0; height:100%; background:var(--blue); transition:width .25s; }
+        #progressText { margin-top:6px; text-align:right; color:var(--muted); font-size:10px; }
+        .meta { display:flex; justify-content:space-between; padding:14px 2px 9px; color:var(--muted); font-size:10px; }
+        .meta strong { color:var(--navy); }
+        .table-wrap { overflow:auto; height:calc(100vh - 235px); min-height:320px; background:var(--white); border:1px solid var(--line); border-radius:4px; box-shadow:0 4px 14px rgba(23,38,58,.06); }
+        table { width:100%; min-width:1350px; border-collapse:collapse; table-layout:auto; }
+        th, td { border-bottom:1px solid #e3eaf2; padding:11px 10px; white-space:normal; overflow:visible; text-overflow:clip; text-align:left; vertical-align:top; line-height:1.45; overflow-wrap:anywhere; }
+        th { position:sticky; top:0; z-index:2; background:var(--navy); color:var(--white); font-size:10px; text-align:left; letter-spacing:.2px; white-space:nowrap; }
+        tbody tr:nth-child(even) { background:#f8fafc; }
+        tbody tr:hover { background:#edf5ff; }
+        th:nth-child(1), td:nth-child(1) { min-width:120px; }
+        th:nth-child(2), td:nth-child(2) { min-width:180px; }
+        th:nth-child(3), td:nth-child(3) { min-width:150px; }
+        th:nth-child(4), td:nth-child(4) { min-width:130px; }
+        th:nth-child(5), td:nth-child(5) { min-width:100px; }
+        th:nth-child(6), td:nth-child(6) { min-width:125px; }
+        th:nth-child(7), td:nth-child(7) { min-width:135px; }
+        th:nth-child(8), td:nth-child(8) { min-width:220px; }
+        th:nth-child(9), td:nth-child(9), th:nth-child(10), td:nth-child(10) { min-width:150px; }
+        .empty td { padding:42px; color:var(--muted); text-align:center; }
+        @media (max-width:720px) { .page { padding:10px; } .header,.toolbar { flex-wrap:wrap; } h1 { width:100%; } #search,#month,#weekly,#refresh,#export { flex:1 1 100%; } .table-wrap { height:calc(100vh - 310px); } }
+    </style>
+</head>
+<body>
+<main class="page">
+    <header class="header">
+        <h1>SYSTEM_ATTRITION DATABASE</h1>
+        <span id="modeLabel" class="mode-label">MONTHLY REPORT</span>
+        <button id="monthly" class="active" type="button">MONTHLY REPORT</button>
+        <button id="weeklyButton" type="button">WEEKLY REPORT</button>
+    </header>
+    <section class="toolbar">
+        <input id="search" type="search" placeholder="FILTER CURRENT VIEW..." aria-label="Filter current view">
+        <select id="month" aria-label="Select report month"></select>
+        <div id="weekly">
+            <input id="start" type="date" aria-label="Weekly report start date"><span>TO</span><input id="end" type="date" aria-label="Weekly report end date">
+        </div>
+        <button id="refresh" type="button"><i class="fas fa-sync-alt"></i> REFRESH</button>
+        <button id="export" type="button">EXPORT_EXCEL</button>
+    </section>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div id="progressText">PROCESSING... : 0%</div>
+    <div class="meta"><span>RECORDS_DETECTED: <strong id="count">0</strong></span><span>ACTIVE_YEAR: <strong id="year"></strong></span></div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>EMPLOC</th><th>FULLNAME</th><th>OUTLET</th><th>AREA</th><th>TENURE</th><th>STATUS</th><th>CONTACT NO.</th><th>ADDRESS</th><th>DATE HIRED</th><th>DATE SEPARATION</th></tr></thead>
+            <tbody id="body"></tbody>
+        </table>
+    </div>
+</main>
+<script src="../../universal.js"></script>
+<script>
+    const headers = ['EMPLOC','FULLNAME','OUTLET','AREA','TENURE','STATUS','CONTACT NO.','ADDRESS','DATE HIRED','DATE SEPARATION'];
+    const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+    let rows = [], mode = 'monthly', year = new Date().getFullYear();
+    const $ = id => document.getElementById(id);
+    const month = $('month');
+    months.forEach((name, index) => month.add(new Option(name, index)));
+    month.value = String(new Date().getMonth());
+    $('year').textContent = year;
+
+    function safe(value) { const node = document.createElement('span'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
+    function dateValue(value) {
+        const text = String(value || '').trim();
+        if (!text) return null;
+        const parsed = new Date(text);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+        const parts = text.split(/[\/-]/).map(Number);
+        if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+        return new Date(parts[2] < 100 ? parts[2] + 2000 : parts[2], parts[0] - 1, parts[1]);
+    }
+    function visibleRows() {
+        const query = $('search').value.trim().toLowerCase();
+        const start = $('start').value ? new Date($('start').value + 'T00:00:00') : null;
+        const end = $('end').value ? new Date($('end').value + 'T23:59:59') : null;
+        return rows.filter(row => {
+            const matchesSearch = !query || row.some(value => String(value || '').toLowerCase().includes(query));
+            const separation = dateValue(row[9]);
+            const matchesDate = mode === 'monthly'
+                ? true
+                : separation && (!start || separation >= start) && (!end || separation <= end);
+            return matchesSearch && matchesDate;
+        });
+    }
+    function render() {
+        const visible = visibleRows();
+        $('count').textContent = visible.length;
+        $('body').innerHTML = visible.length
+            ? visible.map(row => '<tr>' + headers.map((_, index) => '<td>' + safe(row[index]) + '</td>').join('') + '</tr>').join('')
+            : '<tr class="empty"><td colspan="10">NO RECORDS FOUND FOR CURRENT VIEW</td></tr>';
+    }
+    function setMode(nextMode) {
+        mode = nextMode;
+        const monthly = mode === 'monthly';
+        $('monthly').classList.toggle('active', monthly);
+        $('weeklyButton').classList.toggle('active', !monthly);
+        $('modeLabel').textContent = monthly ? 'MONTHLY REPORT' : 'WEEKLY REPORT';
+        month.style.display = monthly ? '' : 'none';
+        $('weekly').style.display = monthly ? 'none' : 'flex';
+        load();
+    }
+    function exportReport() {
+        const csv = [headers, ...visibleRows()].map(row => row.map(value => '"' + String(value || '').replace(/"/g, '""') + '"').join(',')).join('\n');
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8;' }));
+        link.download = 'attrition-' + mode + '-report.csv';
+        link.click();
+    }
+    async function load() {
+        const sheetID = new URLSearchParams(location.search).get('sheetID');
+        if (!sheetID) return;
+        $('refresh').disabled = true;
+        $('refresh').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> LOADING';
+        $('progressBar').style.width = '35%'; $('progressText').textContent = 'PROCESSING... : 35%';
+        try {
+            const client = new URLSearchParams(location.search).get('clientHeader') || '';
+            const selectedMonth = months[Number(month.value)];
+            const query = '?sheetID=' + encodeURIComponent(sheetID)
+                + '&module=attrition&mode=' + encodeURIComponent(mode)
+                + '&month=' + encodeURIComponent(selectedMonth)
+                + '&client=' + encodeURIComponent(client)
+                + '&token=' + encodeURIComponent(window.API_TOKEN || '');
+            const response = await fetch(window.API + query);
+            const payload = await response.json();
+            if (payload.error) throw new Error(payload.error);
+            rows = payload.rows || []; year = Number(payload.activeYear) || year; $('year').textContent = year;
+            $('progressBar').style.width = '100%'; $('progressText').textContent = 'PROCESSING... : 100%'; render();
+            if (!rows.length && payload.diagnostics) {
+                $('progressText').textContent = 'NO MATCH: CLIENT ' + payload.diagnostics.clientMatches
+                    + ' | MONTH ' + payload.diagnostics.monthMatches
+                    + ' | YEAR ' + payload.diagnostics.yearMatches;
+            }
+        } catch (error) { $('progressText').textContent = error.message || 'FAILED TO LOAD REPORT'; render(); }
+        finally {
+            $('refresh').disabled = false;
+            $('refresh').innerHTML = '<i class="fas fa-sync-alt"></i> REFRESH';
+        }
+    }
+    $('search').addEventListener('input', render);
+    month.addEventListener('change', load);
+    [$('start'), $('end')].forEach(control => control.addEventListener('input', render));
+    $('monthly').addEventListener('click', () => setMode('monthly'));
+    $('weeklyButton').addEventListener('click', () => setMode('weekly'));
+    $('refresh').addEventListener('click', load);
+    $('export').addEventListener('click', exportReport);
+    setMode('monthly');
+</script>
+</body>
+</html>

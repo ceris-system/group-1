@@ -217,6 +217,90 @@ function doGet(e) {
       })));
     }
 
+    // --- 4. ATTRITION REPORT MODULE ---
+    if (moduleName === "attrition") {
+      const attritionSheet = clientSS.getSheetByName("IN");
+      if (!attritionSheet) return msg({ error: "Sheet 'IN' not found" });
+
+      const firstDataRow = 3;
+      const lastAttritionRow = attritionSheet.getLastRow();
+      const dataRowCount = lastAttritionRow - firstDataRow + 1;
+      if (dataRowCount <= 0) return msg({ rows: [] });
+
+      const activeYear = new Date().getFullYear();
+      const requestedMonth = String(e.parameter.month || "").trim().toUpperCase();
+      const reportMode = String(e.parameter.mode || "monthly").trim().toLowerCase();
+      const clientName = String(e.parameter.client || "").trim().toUpperCase();
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const normalizedMonth = requestedMonth || monthNames[new Date().getMonth()];
+      const sourceColumnCount = Math.max(attritionSheet.getLastColumn(), 47); // AU contains the client filter.
+      const sourceRange = attritionSheet.getRange(firstDataRow, 1, dataRowCount, sourceColumnCount);
+      const sourceRows = sourceRange.getValues();
+      const displayRows = sourceRange.getDisplayValues();
+      const normalizeText = value => String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
+      const normalizeMonth = value => {
+        const text = normalizeText(value);
+        const numericMonth = Number(text);
+        if (Number.isInteger(numericMonth) && numericMonth >= 1 && numericMonth <= 12) return monthNames[numericMonth - 1];
+        return text.replace(/[^A-Z]/g, "");
+      };
+      const normalizeYear = value => {
+        const match = String(value || "").match(/\d{4}/);
+        return match ? match[0] : "";
+      };
+      const formatAttritionDate = value => {
+        if (!value) return "";
+        const dateValue = value instanceof Date ? value : new Date(value);
+        if (isNaN(dateValue.getTime())) return String(value);
+        return Utilities.formatDate(dateValue, "Asia/Manila", "MMMM dd, yyyy");
+      };
+      const normalizedClient = normalizeText(clientName);
+      const normalizedRequestedMonth = normalizeMonth(normalizedMonth);
+      let clientMatchCount = 0;
+      let yearMatchCount = 0;
+      let monthMatchCount = 0;
+      const filteredRows = sourceRows.filter((row, index) => {
+        const displayRow = displayRows[index];
+        const rowClient = normalizeText(displayRow[46]); // AU
+        const rowMonth = normalizeMonth(displayRow[42]); // AQ
+        const rowYear = normalizeYear(displayRow[43]); // AR
+        const clientMatches = !normalizedClient
+          || rowClient === normalizedClient
+          || (rowClient.length >= 3 && normalizedClient.includes(rowClient))
+          || (normalizedClient.length >= 3 && rowClient.includes(normalizedClient));
+        const yearMatches = rowYear === String(activeYear);
+        const monthMatches = reportMode !== "monthly" || rowMonth === normalizedRequestedMonth;
+        if (clientMatches) clientMatchCount++;
+        if (yearMatches) yearMatchCount++;
+        if (monthMatches) monthMatchCount++;
+        return clientMatches && yearMatches && monthMatches;
+      });
+
+      return msg({
+        rows: filteredRows.map(row => [
+          row[2] || "",                    // C: EMPLOC
+          row[35] || "",                   // AJ: FULLNAME
+          row[9] || "",                    // J: OUTLET
+          row[8] || "",                    // I: AREA
+          row[15] || "",                   // P: TENURE
+          row[33] || "",                   // AH: STATUS
+          row[20] || "",                   // U: CONTACT NO.
+          row[24] || "",                   // Y: ADDRESS
+          formatAttritionDate(row[14]),     // O: DATE HIRED
+          formatAttritionDate(row[32])      // AG: DATE SEPARATION
+        ]),
+        activeYear: activeYear,
+        diagnostics: {
+          sourceRows: sourceRows.length,
+          clientMatches: clientMatchCount,
+          yearMatches: yearMatchCount,
+          monthMatches: monthMatchCount,
+          requestedClient: normalizedClient,
+          requestedMonth: normalizedRequestedMonth
+        }
+      });
+    }
+
     // --- 4. 5% BUFFER MODULE SPECIFIC HANDLER ---
     if (moduleName === "5_buffer") {
       try {
