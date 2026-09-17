@@ -650,7 +650,7 @@
                     const searchFilterVal = document.getElementById('filterSearch').value || "";
                     
                     const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
-                        : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                        : "https://script.google.com/macros/s/AKfycbwzqO4mFT7kzQXgotkyReH5owwapmjzvqUDYeANRkReS1-RysbJQJKi9SyrC4_zqtkw/exec";
                     
                     const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=hr_emploc_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
                     const jsonResponse = await response.json();
@@ -786,7 +786,7 @@
             };
             simulateProgress(async (finishProgress) => {
                 try {
-                    const parentAPI = (window.parent && window.parent.API) ? window.parent.API : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                    const parentAPI = (window.parent && window.parent.API) ? window.parent.API : "https://script.google.com/macros/s/AKfycbwzqO4mFT7kzQXgotkyReH5owwapmjzvqUDYeANRkReS1-RysbJQJKi9SyrC4_zqtkw/exec";
                     
                     const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=hr_emploc_monitoring&action=updaterecord`, {
                         method: 'POST',

@@ -457,7 +457,7 @@
                 const searchFilterVal = document.getElementById('filterSearch').value || "";
                 
                 const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
-                    : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                    : "https://script.google.com/macros/s/AKfycbwzqO4mFT7kzQXgotkyReH5owwapmjzvqUDYeANRkReS1-RysbJQJKi9SyrC4_zqtkw/exec";
                 
                 setLoaderProgress(50, "FETCHING SERVER DATA");
                 const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=for_approval&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
@@ -592,7 +592,7 @@
 
             try {
                 const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
-                    : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                    : "https://script.google.com/macros/s/AKfycbwzqO4mFT7kzQXgotkyReH5owwapmjzvqUDYeANRkReS1-RysbJQJKi9SyrC4_zqtkw/exec";
                 
                 let successCount = 0;
                 for (let i = 0; i < selectedVcodes.length; i++) {
