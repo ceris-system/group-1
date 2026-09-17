@@ -956,13 +956,18 @@
 
             loadDeployerDropdowns();
 
+            const onboardDate = record.onboardDate ? new Date(record.onboardDate) : null;
+            const onboardDateValue = onboardDate && !isNaN(onboardDate.getTime())
+                ? onboardDate.toISOString().split('T')[0]
+                : '';
+
             document.getElementById('drawerVcodeText').innerText = record.vcode;
             document.getElementById('drawerOutletText').innerText = record.outlet;
             document.getElementById('drawerLastName').value = record.lastName;
             document.getElementById('drawerFirstName').value = record.firstName;
             document.getElementById('drawerMiddleName').value = record.middleName;
             document.getElementById('drawerContact').value = record.contact;
-            document.getElementById('drawerOnboardDate').value = record.onboardDate ? new Date(record.onboardDate).toISOString().split('T')[0] : '';
+            document.getElementById('drawerOnboardDate').value = onboardDateValue;
             document.getElementById('drawerReliever').value = record.reliever;
             document.getElementById('drawerRemarks').value = record.remarks;
             
