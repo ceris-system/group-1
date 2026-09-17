@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="../../universal.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Approval Module</title>
@@ -386,12 +387,20 @@
     </div>
 
     <script>
+        function getModuleApi() {
+            if (window.parent && window.parent.API) return window.parent.API;
+            if (window.API) return window.API;
+            return "";
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         let sheetID = urlParams.get('sheetID');
         
         if (!sheetID) {
             sheetID = "1GRNJbY1xoLuhrCVOduSo9DBACseMHJa9s5l5W4rOc5Y";
         }
+
+        const MODULE_API = getModuleApi();
 
         let globalApprovalData = [];
         let isAdminUser = false;
@@ -456,8 +465,12 @@
                 const clientHeaderParam = urlParams.get('clientHeader') || "";
                 const searchFilterVal = document.getElementById('filterSearch').value || "";
                 
-                const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
-                    : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                const parentAPI = MODULE_API || window.API;
+                
+                if (!MODULE_API && !parentAPI) {
+                    showCustomAlert("This module must be opened from the C.E.R.I.S dashboard.", "MODULE LOAD ERROR", "error");
+                    return;
+                }
                 
                 setLoaderProgress(50, "FETCHING SERVER DATA");
                 const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=for_approval&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
@@ -506,13 +519,13 @@
 
                 renderTable(globalApprovalData);
                 setLoaderProgress(100, "COMPLETE");
-                setTimeout(() => hideLoader(), 300);
+                hideLoader();
             } catch (err) {
                 console.error("Failed to fetch approval records", err);
                 hideLoader();
                 showCustomAlert("Failed to load approval records from server.", "NETWORK ERROR", "error");
             } finally {
-                if (refreshBtn) setTimeout(() => refreshBtn.classList.remove('spinning'), 600);
+                if (refreshBtn) refreshBtn.classList.remove('spinning');
             }
         }
 
@@ -588,39 +601,25 @@
             const selectedVcodes = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-vcode'));
             const totalCount = selectedVcodes.length;
 
-            setLoaderProgress(5, `0 OUT OF ${totalCount} APPROVED`);
+            setLoaderProgress(5, `PROCESSING ${totalCount} RECORD(S)`);
 
             try {
-                const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
-                    : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
-                
-                let successCount = 0;
-                for (let i = 0; i < selectedVcodes.length; i++) {
-                    const currentVcode = selectedVcodes[i];
-                    const currentDisplayNum = i + 1;
-                    
-                    setLoaderProgress(
-                        Math.round((currentDisplayNum / totalCount) * 90), 
-                        `${currentDisplayNum} OUT OF ${totalCount} APPROVED (MOVE TO HR EMPLOC)`
-                    );
+                const parentAPI = MODULE_API || window.API;
+                if (!parentAPI || !sheetID) throw new Error("Approval API or sheet ID is unavailable");
 
-                    const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=for_approval&action=approve`, {
-                        method: 'POST',
-                        body: JSON.stringify({ vcodes: [currentVcode] })
-                    });
-                    const result = await response.json();
-                    
-                    if (result.status === 'success') {
-                        successCount++;
-                    }
+                const response = await fetch(`${parentAPI}?sheetID=${encodeURIComponent(sheetID)}&module=for_approval&action=approve`, {
+                    method: 'POST',
+                    body: JSON.stringify({ vcodes: selectedVcodes })
+                });
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    throw new Error(result.message || "Approval transfer failed");
                 }
 
                 setLoaderProgress(100, "COMPLETED TRANSFER");
-                setTimeout(() => {
-                    hideLoader();
-                    showCustomAlert(`Successfully approved and transferred ${successCount} of ${totalCount} record(s).`, "SUCCESS", "success");
-                    loadApprovalData(); // Auto-refreshes data table instantly
-                }, 400);
+                hideLoader();
+                showCustomAlert(result.message || `Successfully approved and transferred ${totalCount} record(s).`, "SUCCESS", "success");
+                loadApprovalData();
 
             } catch (err) {
                 console.error("Approval error", err);

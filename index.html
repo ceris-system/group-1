@@ -219,13 +219,11 @@
         <header class="dash-header">
             <span class="system-title" id="clientHeader">LOADING...</span>
             <nav class="icon-nav" id="mainNav">
-                <!-- Announcement is always visible -->
-                <!-- Conditional buttons based on user session bridges -->
+                <div class="nav-btn" data-bridge="announcement" onclick="openModule('announcement')">📣<small>Announcement</small></div>
                 <div class="nav-btn" data-bridge="plantilla" onclick="openModule('plantilla')" style="display: none;">📋<small>Plantilla</small></div>
-<div class="nav-btn" data-bridge="vacancy_monitoring" onclick="openModule('vacancy_monitoring')" style="display: none;">🔭<small>Vacancy Monitoring</small></div>
-<div class="nav-btn" data-bridge="hr_emploc_monitoring" onclick="openModule('hr_emploc_monitoring')" style="display: none;">👥<small>Hr Emploc Monitoring</small></div>
-<div class="nav-btn" data-bridge="approval" onclick="openModule('approval')" style="display: none;">✅<small>FOR APPROVAL</small></div>
-              
+                <div class="nav-btn" data-bridge="vacancy_monitoring" onclick="openModule('vacancy_monitoring')" style="display: none;">🔭<small>Vacancy Monitoring</small></div>
+                <div class="nav-btn" data-bridge="hr_emploc_monitoring" onclick="openModule('hr_emploc_monitoring')" style="display: none;">👥<small>Hr Emploc Monitoring</small></div>
+                <div class="nav-btn" data-bridge="approval" onclick="openModule('approval')" style="display: none;">✅<small>FOR APPROVAL</small></div>
             </nav>
             <div class="user-session-wrapper">
                 <span id="displayUsername" class="tactical-user-label"></span>
@@ -293,7 +291,7 @@
             navButtons.forEach(btn => {
                 const bridgeKey = btn.getAttribute('data-bridge');
                 if (bridgeKey === 'announcement') {
-                    btn.style.display = 'flex'; // Always show announcement
+                    btn.style.display = 'none'; // Announcement opens automatically without a nav icon
                     return;
                 }
                 
@@ -312,23 +310,32 @@
             const titleElement = document.getElementById('activeModuleTitle');
             if (titleElement) titleElement.innerText = folderName.replace(/_/g, ' ').toUpperCase();
 
-            // Toggle background video: ON only for announcement, OFF (pure white background) for all other modules
             if (folderName === 'announcement') {
                 setBackgroundVideoState(true);
                 container.innerHTML = `<iframe src="modules/announcement/announcement.html" style="width:100%; height:100%; border:none;"></iframe>`;
                 return;
-            } else {
-                setBackgroundVideoState(false);
             }
+
+            setBackgroundVideoState(false);
 
             const btn = document.querySelector(`[data-bridge="${folderName}"]`);
             const bridgeKey = btn ? btn.getAttribute('data-bridge') : folderName;
-            const targetSheetID = window.sessionBridges ? window.sessionBridges[bridgeKey] : "";
+            const bridgeAliases = {
+                hr_emploc_monitoring: ['hr_emploc_monitoring', 'hr_emploc', 'emploc']
+            };
+            const bridgeKeys = bridgeAliases[bridgeKey] || [bridgeKey];
+            const targetSheetID = bridgeKeys
+                .map(key => window.sessionBridges ? window.sessionBridges[key] : '')
+                .find(value => value && String(value).trim() !== '') || "";
+
+            if (!targetSheetID || String(targetSheetID).trim() === "") {
+                if (typeof showModal === 'function') {
+                    showModal('RESTRICTED', 'You do not have access to this module.', 'lock');
+                }
+                return;
+            }
             
-            // GRAB THE CURRENT CLIENT HEADER TEXT FROM THE PAGE DISPLAY
             const currentClientHeader = document.getElementById('clientHeader').innerText || "";
-            
-            // Ensures the directory path matches the module identifier exactly
             const iframeUrl = `modules/${folderName}/${folderName}.html?sheetID=${targetSheetID}&user=${window.sessionUser}&clientHeader=${encodeURIComponent(currentClientHeader)}`;
             container.innerHTML = `<iframe src="${iframeUrl}" style="width:100%; height:100%; border:none;"></iframe>`;
         }

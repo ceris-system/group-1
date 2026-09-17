@@ -55,6 +55,7 @@ async function handleAction(action) {
                 window.sessionUser = user;
                 window.sessionBridges = data.bridges;
                 localStorage.setItem("userBridges", JSON.stringify(data.bridges));
+                localStorage.setItem("sessionUser", user);
                 showDashboard(data.clientName || user);
                 filterIcons();
             } else if (currentStatus === 'REQUIRE_UPDATE' || currentStatus === 'DEFAULT') {
@@ -138,15 +139,30 @@ async function handleForgotPassword() {
 function showDashboard(clientName) {
     document.getElementById('authContainer').style.display = 'none';
     document.getElementById('dashboard').style.display = 'flex';
-    document.getElementById('clientHeader').innerText = clientName.toUpperCase() + " SYSTEM";
+    document.getElementById('clientHeader').innerText = clientName.toUpperCase() + "";
     document.getElementById('displayUsername').innerText = getTimeGreeting() + ", " + window.sessionUser.toUpperCase();
-    openModule('announcement'); 
+    filterIcons();
+    openModule('announcement');
 }
 
 function filterIcons() {
     const navButtons = document.querySelectorAll('.nav-btn');
+    const bridges = window.sessionBridges || JSON.parse(localStorage.getItem('userBridges') || '{}');
+    const bridgeAliases = {
+        hr_emploc_monitoring: ['hr_emploc_monitoring', 'hr_emploc', 'emploc']
+    };
+
     navButtons.forEach(btn => {
-        btn.style.display = 'flex';
+        const bridgeKey = btn.getAttribute('data-bridge');
+
+        if (bridgeKey === 'announcement') {
+            btn.style.display = 'none';
+            return;
+        }
+
+        const keys = bridgeAliases[bridgeKey] || [bridgeKey];
+        const hasAccess = keys.some(key => bridges && bridges[key] && String(bridges[key]).trim() !== '');
+        btn.style.display = hasAccess ? 'flex' : 'none';
     });
 }
 
@@ -171,8 +187,39 @@ function showModal(title, message, type) {
 
 function logoutSystem() {
     localStorage.removeItem("userBridges");
+    localStorage.removeItem("sessionUser");
+    window.sessionUser = null;
+    window.sessionBridges = null;
     window.location.reload();
 }
+
+function restoreSessionFromStorage() {
+    const savedUser = localStorage.getItem("sessionUser");
+    const savedBridges = JSON.parse(localStorage.getItem("userBridges") || '{}');
+
+    if (!savedUser || !savedBridges || Object.keys(savedBridges).length === 0) {
+        return;
+    }
+
+    window.sessionUser = savedUser;
+    window.sessionBridges = savedBridges;
+
+    const dashboard = document.getElementById('dashboard');
+    const authContainer = document.getElementById('authContainer');
+    if (dashboard) dashboard.style.display = 'flex';
+    if (authContainer) authContainer.style.display = 'none';
+
+    const clientHeader = document.getElementById('clientHeader');
+    if (clientHeader) clientHeader.innerText = (savedUser || 'SYSTEM').toUpperCase() + ' SYSTEM';
+
+    const displayUsername = document.getElementById('displayUsername');
+    if (displayUsername) displayUsername.innerText = getTimeGreeting() + ', ' + savedUser.toUpperCase();
+
+    if (typeof filterIcons === 'function') filterIcons();
+    if (typeof openModule === 'function') openModule('announcement');
+}
+
+window.addEventListener('DOMContentLoaded', restoreSessionFromStorage);
 
 /**
  * +-5% BUFFER SYSTEM MODULE FETCH & RENDER LOGIC

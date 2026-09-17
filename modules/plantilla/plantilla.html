@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script src="../../universal.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf-plugin-autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --glass: rgba(255, 255, 255, 0.05); --accent: #00e5ff; --neon-red: #ff0000; --neon-yellow: white; }
@@ -43,8 +44,28 @@
         }
         .action-btn:hover { background: #f7f4f400; color: #000; }
 
-        #tableContainer { height: calc(100vh - 50px); overflow: auto; }
-        table { width: 100%; border-collapse: collapse; }
+        #tableContainer {
+            height: calc(100vh - 50px);
+            max-height: calc(100vh - 50px);
+            min-height: 0;
+            overflow-y: scroll;
+            overflow-x: auto;
+            padding-bottom: 90px;
+            scroll-padding-bottom: 90px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        #tableContainer table {
+            width: 100%;
+            min-width: 900px;
+            border-collapse: collapse;
+        }
+
+        #tableContainer::after {
+            content: "";
+            display: block;
+            height: 90px;
+        }
         thead th { 
             position: sticky; top: 0; background: #000; 
             padding: 12px; text-align: left; border-bottom: 2px solid #333;
@@ -668,7 +689,13 @@
 </div>
 
 <script>
-    const API = window.parent.API;
+    function getModuleApi() {
+        if (window.parent && window.parent.API) return window.parent.API;
+        if (window.API) return window.API;
+        return "";
+    }
+
+    const API = getModuleApi();
     let masterData = [];
 
     function formatDateText(dateStr) {
@@ -703,19 +730,20 @@
     async function loadPlantilla() {
         const urlParams = new URLSearchParams(window.location.search);
         const sID = urlParams.get('sheetID');
-        if (!sID) return;
+        if (!sID) {
+            const loaderEl = document.getElementById('loader');
+            if (loaderEl) loaderEl.innerHTML = '<h4 style="color:#ffb703">MODULE LOAD ERROR: Missing sheetID parameter.</h4>';
+            return;
+        }
+
+        if (!API) {
+            const loaderEl = document.getElementById('loader');
+            if (loaderEl) loaderEl.innerHTML = '<h4 style="color:#ffb703">MODULE LOAD ERROR: Please open this module from the C.E.R.I.S dashboard.</h4>';
+            return;
+        }
 
         try {
             updateInitialProgress(15);
-            let simulatedProgress = 15;
-            
-            const progressInterval = setInterval(() => {
-                if (simulatedProgress < 85) {
-                    simulatedProgress += 10;
-                    updateInitialProgress(simulatedProgress);
-                }
-            }, 150);
-
             updateInitialProgress(30);
             const resp = await fetch(`${API}?sheetID=${sID}&module=Plantilla`);
             
@@ -744,17 +772,14 @@
                 };
             });
 
-            clearInterval(progressInterval);
             updateInitialProgress(100);
             updateDisplay(masterData);
             
-            setTimeout(() => {
-                const loaderEl = document.getElementById('loader');
-                const containerEl = document.getElementById('tableContainer');
-                if(loaderEl) loaderEl.style.display = 'none';
-                if(containerEl) containerEl.style.display = 'block';
-                checkDuplicates(true);
-            }, 400); 
+            const loaderEl = document.getElementById('loader');
+            const containerEl = document.getElementById('tableContainer');
+            if(loaderEl) loaderEl.style.display = 'none';
+            if(containerEl) containerEl.style.display = 'block';
+            checkDuplicates(true);
         } catch (e) { 
             console.error(e);
             const loaderEl = document.getElementById('loader');
@@ -1010,9 +1035,7 @@
             await loadPlantilla();
             loadSilData();
             setModalProgress(100, "SIL Refreshed successfully!");
-            setTimeout(() => {
-                closeModal();
-            }, 500);
+            closeModal();
         } catch (e) {
             console.error(e);
             finishModal("INTERNET CONNECTION FAILED");
@@ -1647,11 +1670,7 @@
         const sID = urlParams.get('sheetID');
         const currentUserEmail = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail') || '';
 
-        // Processing status loop simulation with "X out of Y" format
-        for (let i = 0; i < totalSelected; i++) {
-            showPopupAlert(`Processing: ${i + 1} out of ${totalSelected} records have been moving to VACANCY...`);
-            await new Promise(resolve => setTimeout(resolve, 150));
-        }
+        showPopupAlert(`Processing ${totalSelected} selected VCODE record(s) to VACANCY...`);
 
         try {
             const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=vcode_variance&action=transfer`, {
@@ -1707,11 +1726,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             const sID = urlParams.get('sheetID');
             
-            // Processing status loop simulation with "X out of Y" format
-            for (let i = 0; i < totalSelected; i++) {
-                showPopupAlert(`Processing: ${i + 1} out of ${totalSelected} records are currently moving to DELETED VCODES...`);
-                await new Promise(resolve => setTimeout(resolve, 150));
-            }
+            showPopupAlert(`Processing ${totalSelected} selected VCODE record(s) to DELETED VCODES...`);
 
             try {
                 const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=vcode_variance&action=delete`, {
@@ -1964,23 +1979,32 @@
             masterData[index].status_ah = ah;
         }
 
-        let progress = 0;
-        const speed = setInterval(() => {
-            progress += 25;
-            if (progress < 100) {
-                setModalProgress(progress, shouldTransfer ? "MOVING RECORD TO INACTIVE..." : "SYNCING RECORDS...");
-            }
-        }, 50);
+        setModalProgress(100, shouldTransfer ? "MOVING RECORD TO INACTIVE..." : "SYNCING RECORDS...");
 
         try {
-            await fetch(`${API}?sheetID=${sID}&module=Plantilla&action=updaterecord&vcode=${vcode}&rate=${rateValue}&updateDate=${encodeURIComponent(formattedAg)}&statusAH=${ah}`);
+            const updateResponse = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=Plantilla&action=updaterecord&vcode=${encodeURIComponent(vcode)}&rate=${encodeURIComponent(rateValue)}&updateDate=${encodeURIComponent(formattedAg)}&statusAH=${encodeURIComponent(ah)}`);
+            const updateResult = await updateResponse.json();
+            if (updateResult.status !== "success") {
+                throw new Error(updateResult.message || "Plantilla update failed");
+            }
 
             if (shouldTransfer) {
-                await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=Plantilla&action=side_drawer_update`, {
+                const transferResponse = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=Plantilla&action=side_drawer_update`, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ vcode: vcode })
+                    body: JSON.stringify({
+                        module: "plantilla",
+                        action: "side_drawer_update",
+                        vcode: vcode,
+                        status: ah,
+                        updateDate: formattedAg
+                    })
                 });
+
+                const transferResult = await transferResponse.json();
+                if (transferResult.status !== "success") {
+                    throw new Error(transferResult.message || "Inactive transfer failed");
+                }
 
                 // Record now lives in VACANCY + INACTIVE — drop it from this table
                 if (index !== -1) masterData.splice(index, 1);
@@ -1988,13 +2012,10 @@
         } catch (err) {
             console.error("INTERNET CONNECTION FAILED", err);
         } finally {
-            clearInterval(speed);
             setModalProgress(100, "DONE");
             updateDisplay(masterData);
             closePanel();
-            setTimeout(() => {
-                closeModal();
-            }, 400);
+            closeModal();
         }
     }
 
@@ -2023,9 +2044,7 @@
                 await loadPlantilla(); 
                 setModalProgress(100, "All empty cells updated!");
                 
-                setTimeout(() => {
-                    finishModal("UPDATED SUCCESSFULLY");
-                }, 500);
+                finishModal("UPDATED SUCCESSFULLY");
             } else {
                 finishModal("UPDATE FAILED");
             }
@@ -2038,11 +2057,80 @@
     function printTable() { window.print(); }
 
     function runExport(fmt) {
-        const exportData = masterData.map(r => ({CLIENT: r.client, VCODE: r.vcode, EMPLOC: r.emploc, NAME: r.name, POSITION: r.position, OUTLET: r.outlet, HC: r.hc, STATUS: r.status }));
-        const ws = XLSX.utils.json_to_sheet(exportData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
-        XLSX.writeFile(wb, `Plantilla_Data.${fmt}`);
+        const normalizedFormat = String(fmt || '').toLowerCase();
+        const exportData = masterData.map(r => ({
+            CLIENT: r.client || '',
+            VCODE: r.vcode || '',
+            EMPLOC: r.emploc || '',
+            NAME: r.name || '',
+            POSITION: r.position || '',
+            OUTLET: r.outlet || '',
+            HC: r.hc || 0,
+            STATUS: r.status || ''
+        }));
+
+        if (!exportData.length) {
+            alert('No Plantilla records available to export.');
+            return;
+        }
+
+        if (normalizedFormat === 'csv') {
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+            XLSX.writeFile(wb, 'Plantilla_Data.csv');
+            return;
+        }
+
+        if (normalizedFormat === 'xlsx') {
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+            XLSX.writeFile(wb, 'Plantilla_Data.xlsx');
+            return;
+        }
+
+        if (normalizedFormat === 'pdf') {
+            if (typeof window.jspdf === 'undefined' || !window.jspdf || !window.jspdf.jsPDF) {
+                alert('PDF export library is unavailable in this browser session.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const columns = ['CLIENT', 'VCODE', 'EMPLOC', 'NAME', 'POSITION', 'OUTLET', 'HC', 'STATUS'];
+            const rows = exportData.map(item => [
+                item.CLIENT,
+                item.VCODE,
+                item.EMPLOC,
+                item.NAME,
+                item.POSITION,
+                item.OUTLET,
+                Number(item.HC || 0).toFixed(2),
+                item.STATUS
+            ]);
+
+            doc.setFontSize(14);
+            doc.text('PLANTILLA DATA', 14, 15);
+            doc.autoTable({
+                head: [columns],
+                body: rows,
+                startY: 20,
+                styles: { fontSize: 6, cellPadding: 2 },
+                headStyles: { fillColor: [17, 24, 39], textColor: 255 },
+                alternateRowStyles: { fillColor: [245, 247, 250] },
+                margin: { left: 8, right: 8 }
+            });
+            doc.save('Plantilla_Data.pdf');
+            return;
+        }
+
+        alert('Unsupported export format selected.');
     }
 
     function openModal(t, m) { 

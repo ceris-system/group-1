@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="../../universal.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Emploc Monitoring Module</title>
@@ -572,8 +573,15 @@
     </div>
 
     <script>
+        function getModuleApi() {
+            if (window.parent && window.parent.API) return window.parent.API;
+            if (window.API) return window.API;
+            return "";
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         const sheetID = urlParams.get('sheetID');
+        const MODULE_API = getModuleApi();
         let globalEmplocData = [];
         let activeVcode = "";
 
@@ -615,30 +623,14 @@
             
             loaderTitle.innerText = titleText;
             loader.style.display = 'block';
-            let progress = 0;
-            
-            initialBar.style.width = '0%';
-            initialPercent.innerText = '0%';
-            const interval = setInterval(() => {
-                progress += Math.floor(Math.random() * 15) + 5;
-                if (progress > 90) progress = 90;
-                
-                initialBar.style.width = progress + '%';
-                initialPercent.innerText = progress + '%';
+            initialBar.style.width = '100%';
+            initialPercent.innerText = '100%';
 
-                if (progress >= 90) {
-                    clearInterval(interval);
-                    if (onComplete) {
-                        onComplete(() => {
-                            initialBar.style.width = '100%';
-                            initialPercent.innerText = '100%';
-                            setTimeout(() => {
-                                loader.style.display = 'none';
-                            }, 300);
-                        });
-                    }
-                }
-            }, 100);
+            if (typeof onComplete === 'function') {
+                onComplete(() => {
+                    loader.style.display = 'none';
+                });
+            }
         }
 
         async function loadEmplocData() {
@@ -649,8 +641,11 @@
                     const clientHeaderParam = urlParams.get('clientHeader') || "";
                     const searchFilterVal = document.getElementById('filterSearch').value || "";
                     
-                    const parentAPI = (window.parent && window.parent.API) ? window.parent.API 
-                        : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                    const parentAPI = MODULE_API || window.API;
+                    if (!MODULE_API && !parentAPI) {
+                        showCustomAlert("This module must be opened from the C.E.R.I.S dashboard.", "MODULE LOAD ERROR", "error");
+                        return;
+                    }
                     
                     const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=hr_emploc_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}&filterQuery=${encodeURIComponent(searchFilterVal)}`);
                     const jsonResponse = await response.json();
@@ -711,7 +706,7 @@
                     showCustomAlert("Failed to load records from server.", "NETWORK ERROR", "error");
                 } finally {
                     finishProgress();
-                    setTimeout(() => refreshBtn.classList.remove('spinning'), 600);
+                    refreshBtn.classList.remove('spinning');
                 }
             }, "LOADING HR EMPLOC MONITORING");
         }
@@ -786,7 +781,7 @@
             };
             simulateProgress(async (finishProgress) => {
                 try {
-                    const parentAPI = (window.parent && window.parent.API) ? window.parent.API : "https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec";
+                    const parentAPI = MODULE_API || window.API;
                     
                     const response = await fetch(`${parentAPI}?sheetID=${sheetID}&module=hr_emploc_monitoring&action=updaterecord`, {
                         method: 'POST',
