@@ -149,7 +149,8 @@ function filterIcons() {
     const navButtons = document.querySelectorAll('.nav-btn');
     const bridges = window.sessionBridges || JSON.parse(localStorage.getItem('userBridges') || '{}');
     const bridgeAliases = {
-        hr_emploc_monitoring: ['hr_emploc_monitoring', 'hr_emploc', 'emploc']
+        hr_emploc_monitoring: ['hr_emploc_monitoring', 'hr_emploc', 'emploc'],
+        approval: ['approval', 'for_approval', 'approvetransfer', 'vacancy_monitoring', 'vacancy']
     };
 
     navButtons.forEach(btn => {
@@ -220,6 +221,18 @@ function restoreSessionFromStorage() {
 }
 
 window.addEventListener('DOMContentLoaded', restoreSessionFromStorage);
+
+document.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+
+    const activeElement = document.activeElement;
+    const loginFields = activeElement && (activeElement.id === 'userInput' || activeElement.id === 'passInput');
+    if (!loginFields) return;
+
+    event.preventDefault();
+    const verifyButton = document.querySelector('#authContainer .login-face button:not(.link-button)');
+    if (verifyButton) verifyButton.click();
+});
 
 /**
  * +-5% BUFFER SYSTEM MODULE FETCH & RENDER LOGIC

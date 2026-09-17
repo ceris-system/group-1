@@ -11,6 +11,42 @@ function doGet(e) {
   try {
     const clientSS = SpreadsheetApp.openById(sheetID);
 
+    // --- PLANTILLA DEACTIVATION LOOKUP ---
+    if (moduleName === "deactivation" && action === "lookup") {
+      const emploc = String(e.parameter.emploc || "").trim();
+      if (!emploc) return msg({ error: "EMPLOC is required" });
+
+      const masterSS = SpreadsheetApp.openById("15R18IM11tQHdih52xuxn0pwT9YFPVZLT0ispX8uzjKg");
+      const userDB = masterSS.getSheetByName("UserDB");
+      if (!userDB) return msg({ error: "UserDB not found" });
+
+      const userRows = userDB.getRange(2, 1, Math.max(userDB.getLastRow() - 1, 0), 13).getValues();
+      let mikaSpreadsheetID = "";
+      for (let i = 0; i < userRows.length; i++) {
+        if (String(userRows[i][5] || "").trim() === String(sheetID).trim()) {
+          mikaSpreadsheetID = String(userRows[i][11] || "").trim(); // UserDB column L
+          break;
+        }
+      }
+      if (!mikaSpreadsheetID) return msg({ error: "No lookup spreadsheet is mapped in UserDB column L" });
+
+      const mikaSS = SpreadsheetApp.openById(mikaSpreadsheetID);
+      const mikaSheet = mikaSS.getSheets().find(sheet => sheet.getName().trim().toLowerCase() === "mika file");
+      if (!mikaSheet) return msg({ error: "Sheet 'mika file' not found" });
+
+      const lastRow = mikaSheet.getLastRow();
+      if (lastRow < 1) return msg({ error: "No records found in mika file" });
+
+      const rows = mikaSheet.getRange(1, 1, lastRow, 2).getDisplayValues();
+      const normalizedEmploc = emploc.toUpperCase();
+      for (let i = 0; i < rows.length; i++) {
+        if (String(rows[i][0] || "").trim().toUpperCase() === normalizedEmploc) {
+          return msg({ success: true, emploc: emploc, fullName: rows[i][1] || "" });
+        }
+      }
+      return msg({ success: false, error: "EMPLOC not found in mika file" });
+    }
+
     // Helper for date formatting locked to Philippine time to avoid 1-day offset errors & formatted to Uppercase
     const fmtDate = (dateVal) => {
       if (!dateVal) return "---";
@@ -282,6 +318,7 @@ function doGet(e) {
         const userDB = masterSS.getSheetByName("UserDB");
         
         let approvalSpreadsheetID = sheetID;
+        let approvalClientHeader = "";
 
         if (userDB) {
           const lastRow = userDB.getLastRow();
@@ -292,6 +329,7 @@ function doGet(e) {
               const bridgeSheetID = String(row[5] || "").trim(); 
               if (bridgeSheetID === String(sheetID).trim()) {
                 approvalSpreadsheetID = String(row[11] || "").trim() || sheetID; 
+                approvalClientHeader = String(row[4] || "").trim();
                 break;
               }
             }
@@ -311,6 +349,13 @@ function doGet(e) {
         
         const rawData = targetSheet.getRange(5, 1, numRows, targetSheet.getLastColumn()).getDisplayValues();
         let filteredRows = [];
+        const normalizeClient = value => String(value || "")
+          .replace(/\b(SYSTEM|SYSTM)\b/gi, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toUpperCase();
+        const normalizedClient = normalizeClient(approvalClientHeader || e.parameter.clientHeader || "");
+        const isAdmin = normalizedClient.includes("ADMIN");
 
         for (let i = 0; i < rawData.length; i++) {
           const row = rawData[i];
@@ -335,6 +380,9 @@ function doGet(e) {
 
           if (!hasAllFields) continue;
 
+          const rowClient = normalizeClient(row[2]);
+          if (!isAdmin && (!normalizedClient || rowClient !== normalizedClient)) continue;
+
           filteredRows.push({
             vcode: vcode,      
             colC: row[2] || "",  
@@ -348,7 +396,11 @@ function doGet(e) {
           });
         }
 
-        return msg({ rows: filteredRows });
+        return msg({
+          rows: filteredRows,
+          clientHeader: approvalClientHeader,
+          isAdmin: isAdmin
+        });
 
       } catch (err) {
         return msg({ error: "For Approval Error: " + err.toString() });
@@ -648,6 +700,42 @@ function doPost(e) {
     
     const moduleName = (data.module || e.parameter.module || "").toLowerCase();
     const action = (data.action || e.parameter.action || "").toLowerCase();
+
+    // --- PLANTILLA DEACTIVATION SAVE ---
+    if (moduleName === "deactivation" && action === "save") {
+      if (!sheetID) return msg({ status: "error", message: "Bridge ID provided is missing" });
+
+      const emploc = String(data.emploc || "").trim();
+      const fullName = String(data.fullName || "").trim();
+      const status = String(data.status || "").trim();
+      const inactiveDate = String(data.inactiveDate || "").trim();
+      if (!emploc || !fullName || !status || !inactiveDate) {
+        return msg({ status: "error", message: "EMPLOC, full name, status, and inactive date are required" });
+      }
+
+      const masterSS = SpreadsheetApp.openById("15R18IM11tQHdih52xuxn0pwT9YFPVZLT0ispX8uzjKg");
+      const userDB = masterSS.getSheetByName("UserDB");
+      if (!userDB) return msg({ status: "error", message: "UserDB not found" });
+
+      const rows = userDB.getRange(2, 1, Math.max(userDB.getLastRow() - 1, 0), 13).getValues();
+      let targetSpreadsheetID = "";
+      let clientSheetName = "";
+      for (let i = 0; i < rows.length; i++) {
+        if (String(rows[i][5] || "").trim() === String(sheetID).trim()) {
+          clientSheetName = String(rows[i][3] || "").trim(); // Column D
+          targetSpreadsheetID = String(rows[i][11] || "").trim(); // Column L
+          break;
+        }
+      }
+      if (!targetSpreadsheetID) return msg({ status: "error", message: "No deactivation spreadsheet is mapped in UserDB column L" });
+
+      const targetSS = SpreadsheetApp.openById(targetSpreadsheetID);
+      const targetSheet = targetSS.getSheetByName(clientSheetName) || targetSS.getSheetByName("DEACTIVATION") || targetSS.getSheetByName("Deactivation");
+      if (!targetSheet) return msg({ status: "error", message: "Client deactivation sheet not found" });
+
+      targetSheet.appendRow([emploc, fullName, status, inactiveDate]);
+      return msg({ status: "success", message: "Saved to deactivation records" });
+    }
 
     // --- 1. VCODE VARIANCE: TRANSFER ACTION ---
     if (moduleName === "vcode_variance" && action === "transfer") {

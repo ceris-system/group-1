@@ -36,6 +36,38 @@
 
         .button-group { display: flex; gap: 5px; flex: 1; justify-content: flex-end; }
 
+        #deactivationModal .deactivation-card {
+            width: min(900px, 92vw);
+            max-height: 88vh;
+            overflow-y: auto;
+            background: #070b16;
+            color: #fff;
+            border: 1px solid var(--neon-red);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: left;
+        }
+        .deactivation-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+        .deactivation-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .deactivation-field label { color: var(--neon-red); font-size: 10px; text-transform: uppercase; }
+        .deactivation-field input,
+        .deactivation-field select {
+            width: 100%; box-sizing: border-box; padding: 10px; background: #111;
+            border: 1px solid #444; color: #fff; font-family: inherit; font-size: 12px;
+        }
+        .deactivation-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+        @media screen and (max-width: 700px) {
+            .deactivation-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media screen and (max-width: 420px) {
+            .deactivation-grid { grid-template-columns: 1fr; }
+        }
+
         .action-btn {
             background: transparent; border: 1px solid #444; color: #210681;
             padding: 5px 10px; border-radius: 4px; cursor: pointer;
@@ -75,27 +107,19 @@
 
         /* --- FIXED SIDE PANEL CSS --- */
         .side-panel {
-            position: fixed; 
-            top: 0; 
-            right: -100%;
-            width: 420px; 
-            max-width: 90vw;
-            height: 100vh;
-            background: #000; 
-            box-shadow: -10px 0 30px rgba(0,0,0,0.9);
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 10000; 
-            color: #f34343; 
-            overflow-y: auto; 
-            overflow-x: hidden;
-            border-left: 1px solid #333; 
+            position: fixed;
+            top: 0;
+            right: -680px;
+            width: 640px;
+            background: #070b16;
+            border-left: 1px solid var(--accent-cyan);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             box-sizing: border-box;
-            
-            /* Adds breathing room at the bottom so buttons never get cut off */
-            padding-bottom: 80px; 
-
-            scrollbar-width: thin;
-            scrollbar-color: var(--neon-red) transparent;
+            overflow: hidden;
         }
 
         .side-panel::-webkit-scrollbar {
@@ -114,7 +138,10 @@
         /* --- END OF FIXED SIDE PANEL CSS --- */
 
         .panel-header-top {
-            padding: 20px 45px 20px 20px; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px 10px;
+            padding: 20px 45px 20px 20px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 15px 10px;
             border-bottom: 2px solid var(--neon-red); box-sizing: border-box;
         }
         .header-item { min-width: 0; overflow: hidden; }
@@ -135,7 +162,7 @@
         }
         .detail-grid { 
             display: grid; 
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1px 5px; 
             box-sizing: border-box;
         }
@@ -147,7 +174,7 @@
         }
         .info-box .label { color: var(--neon-red); font-size: 10px; margin-bottom: 3px; text-transform: uppercase; }
         .full-width {
-            grid-column: span 2;
+            grid-column: 1 / -1;
         }
         .info-box .value { color: var(--neon-yellow); font-size: 12px; display: block; word-break: break-word; text-transform: uppercase; }
 
@@ -156,6 +183,10 @@
             width: 100%; background: #111; border: 1px solid #444; 
             color: #fff; padding: 8px; font-family: inherit; font-size: 12px; margin-top: 5px;
             box-sizing: border-box; text-align: left;
+        }
+        .rate-field .input-dark {
+            font-size: 11px;
+            padding: 8px 6px;
         }
         .input-dark::-webkit-calendar-picker-indicator {
             filter: invert(1);
@@ -222,7 +253,7 @@
                 grid-template-columns: 1fr;
             }
             .full-width {
-                grid-column: span 1;
+                grid-column: 1 / -1;
             }
         }
 
@@ -353,6 +384,7 @@
         <button class="action-btn" onclick="openPlantillaSummary()"><i class="fas fa-chart-pie"></i> PLANTILLA SUMMARY</button>
         <button class="action-btn" onclick="openVcodeMasterlist()"><i class="fas fa-list-ol"></i> VCODE MASTERLIST</button>
         <button class="action-btn" onclick="runNewlyHired()"><i class="fas fa-user-plus"></i> NEWLY HIRED</button>
+        <button class="action-btn" onclick="openDeactivationModal()"><i class="fas fa-user-slash"></i> FOR DEACTIVATION</button>
         <button class="action-btn" onclick="triggerRefresh()"><i class="fas fa-sync-alt"></i> REFRESH</button>
         <div class="dropdown">
             <button class="action-btn"><i class="fas fa-file-download"></i> DOWNLOAD</button>
@@ -421,6 +453,45 @@
         <div class="progress-wrapper"><div id="progressBar" class="progress-fill"></div></div>
         <div id="percentLabel" style="font-size: 14px; color: var(--accent); font-weight: bold; margin-bottom: 10px;">0%</div>
         <button id="modalCloseBtn" class="action-btn" style="display:none; margin: 0 auto;" onclick="closeModal()">OK</button>
+    </div>
+</div>
+
+<div id="deactivationModal" class="modal-overlay" style="display:none; justify-content:center; align-items:center;">
+    <div class="deactivation-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:12px; margin-bottom:18px;">
+            <h2 style="margin:0; color:var(--neon-red); font-size:16px;">SYSTEM FOR DEACTIVATION</h2>
+            <button type="button" class="close-btn" onclick="closeDeactivationModal()">&times;</button>
+        </div>
+        <div class="deactivation-grid">
+            <div class="deactivation-field">
+                <label for="deactivationEmploc">Target EMPLOC</label>
+                <input id="deactivationEmploc" type="text" autocomplete="off" oninput="clearDeactivationName()" onblur="lookupDeactivationEmploc()" onkeydown="handleDeactivationEnter(event)">
+            </div>
+            <div class="deactivation-field">
+                <label for="deactivationFullName">Identified Name</label>
+                <input id="deactivationFullName" type="text" readonly placeholder="AWAITING ID...">
+            </div>
+            <div class="deactivation-field">
+                <label for="deactivationStatus">Status</label>
+                <select id="deactivationStatus">
+                    <option value="">-- SELECT --</option>
+                    <option>RESIGNED</option>
+                    <option>AWOL</option>
+                    <option>TERMINATED</option>
+                    <option>ENDO</option>
+                    <option>FLOATING</option>
+                </select>
+            </div>
+            <div class="deactivation-field">
+                <label for="deactivationDate">Inactive Date</label>
+                <input id="deactivationDate" type="date">
+            </div>
+        </div>
+        <div id="deactivationMessage" style="min-height:18px; margin-top:12px; color:#8ca2c0; font-size:11px;"></div>
+        <div class="deactivation-actions">
+            <button type="button" class="action-btn" onclick="closeDeactivationModal()">CLOSE</button>
+            <button type="button" class="action-btn" onclick="saveDeactivationRecord()" style="border-color:#00e5ff; color:#00e5ff;">SAVE TO DEACTIVATION</button>
+        </div>
     </div>
 </div>
 
@@ -898,7 +969,7 @@
                 <div class="detail-section update-box">
                     <div class="section-title"><i class="fas fa-edit"></i> UPDATE RECORDS</div>
                     <div class="detail-grid">
-                        <div class="info-box">
+                        <div class="info-box rate-field">
                             <span class="label">RATE</span>
                             <input type="text" id="updRate" class="input-dark" value="${member.rate || ''}">
                         </div>
@@ -906,7 +977,7 @@
                             <span class="label">DATE</span>
                             <input type="date" id="updDateAG" class="input-dark" value="${defaultIsoDate}">
                         </div>
-                        <div class="info-box full-width">
+                        <div class="info-box">
                             <span class="label">STATUS</span>
                             <select id="updStatusAH" class="input-dark">
                                 ${[
@@ -2027,6 +2098,83 @@
             Object.values(item).some(v => String(v).toLowerCase().includes(val))
         );
         updateDisplay(filtered);
+    }
+
+    function openDeactivationModal() {
+        document.getElementById('deactivationModal').style.display = 'flex';
+        document.getElementById('deactivationEmploc').focus();
+    }
+
+    function closeDeactivationModal() {
+        document.getElementById('deactivationModal').style.display = 'none';
+    }
+
+    function clearDeactivationName() {
+        document.getElementById('deactivationFullName').value = '';
+        document.getElementById('deactivationMessage').innerText = '';
+    }
+
+    function handleDeactivationEnter(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            lookupDeactivationEmploc();
+        }
+    }
+
+    async function lookupDeactivationEmploc() {
+        const emploc = document.getElementById('deactivationEmploc').value.trim();
+        const message = document.getElementById('deactivationMessage');
+        if (!emploc) {
+            message.innerText = 'Enter an EMPLOC first.';
+            return;
+        }
+
+        message.innerText = 'FETCHING EMPLOC RECORD...';
+        try {
+            const sID = new URLSearchParams(window.location.search).get('sheetID');
+            const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=deactivation&action=lookup&emploc=${encodeURIComponent(emploc)}`);
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'EMPLOC not found');
+
+            document.getElementById('deactivationFullName').value = result.fullName || '';
+            message.innerText = 'EMPLOC FOUND.';
+        } catch (error) {
+            document.getElementById('deactivationFullName').value = '';
+            message.innerText = error.message || 'EMPLOC lookup failed.';
+        }
+    }
+
+    async function saveDeactivationRecord() {
+        const emploc = document.getElementById('deactivationEmploc').value.trim();
+        const fullName = document.getElementById('deactivationFullName').value.trim();
+        const status = document.getElementById('deactivationStatus').value;
+        const inactiveDate = document.getElementById('deactivationDate').value;
+        const message = document.getElementById('deactivationMessage');
+
+        if (!emploc || !fullName || !status || !inactiveDate) {
+            message.innerText = 'EMPLOC, identified name, status, and date are required.';
+            return;
+        }
+
+        message.innerText = 'SAVING DEACTIVATION RECORD...';
+        try {
+            const sID = new URLSearchParams(window.location.search).get('sheetID');
+            const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=deactivation&action=save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ module: 'deactivation', action: 'save', emploc, fullName, status, inactiveDate })
+            });
+            const result = await response.json();
+            if (result.status !== 'success') throw new Error(result.message || 'Save failed');
+
+            message.innerText = 'SAVED SUCCESSFULLY.';
+            document.getElementById('deactivationEmploc').value = '';
+            document.getElementById('deactivationFullName').value = '';
+            document.getElementById('deactivationStatus').value = '';
+            document.getElementById('deactivationDate').value = '';
+        } catch (error) {
+            message.innerText = error.message || 'Unable to save deactivation record.';
+        }
     }
 
     async function runNewlyHired() {
