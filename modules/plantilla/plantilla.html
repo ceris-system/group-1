@@ -500,6 +500,10 @@
             </div>
         </div>
         <div id="deactivationMessage" style="min-height:18px; margin-top:12px; color:#8ca2c0; font-size:11px;"></div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
+            <input id="deactivationSearch" type="search" placeholder="FILTER PENDING RECORDS..." aria-label="Filter pending deactivation records" oninput="filterPendingDeactivationRecords()" style="flex:1; box-sizing:border-box; padding:9px 10px; background:#111; border:1px solid #444; color:#fff; font-family:inherit; font-size:12px;">
+            <button type="button" id="deactivationRefreshBtn" class="action-btn" onclick="loadPendingDeactivationRecords(true)" style="border-color:#00e5ff; color:#00e5ff; white-space:nowrap;"><i class="fas fa-sync-alt"></i> REFRESH</button>
+        </div>
         <div style="max-height:260px; overflow:auto; margin-top:12px; border:1px solid #333;">
             <table style="width:100%; border-collapse:collapse; font-size:11px;">
                 <thead style="position:sticky; top:0; background:#333; color:#fff;">
@@ -2126,21 +2130,48 @@
         document.getElementById('deactivationEmploc').focus();
     }
 
-    async function loadPendingDeactivationRecords() {
+    let pendingDeactivationRows = [];
+
+    function renderPendingDeactivationRecords(rows) {
+        const body = document.getElementById('deactivationPendingBody');
+        body.innerHTML = rows.length
+            ? rows.map(row => `<tr><td style="padding:8px;">${row[0] || ''}</td><td style="padding:8px;">${row[1] || ''}</td><td style="padding:8px;">${row[2] || ''}</td><td style="padding:8px;">${row[3] || ''}</td></tr>`).join('')
+            : '<tr><td colspan="4" style="padding:12px;">NO MATCHING PENDING RECORDS</td></tr>';
+    }
+
+    function filterPendingDeactivationRecords() {
+        const searchValue = document.getElementById('deactivationSearch').value.trim().toLowerCase();
+        const filteredRows = pendingDeactivationRows.filter(row =>
+            row.some(value => String(value || '').toLowerCase().includes(searchValue))
+        );
+        renderPendingDeactivationRecords(filteredRows);
+    }
+
+    async function loadPendingDeactivationRecords(isRefresh = false) {
         const body = document.getElementById('deactivationPendingBody');
         const message = document.getElementById('deactivationMessage');
+        const refreshButton = document.getElementById('deactivationRefreshBtn');
+        if (refreshButton) {
+            refreshButton.disabled = true;
+            refreshButton.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> LOADING';
+        }
         body.innerHTML = '<tr><td colspan="4" style="padding:12px;">FETCHING PENDING RECORDS...</td></tr>';
         try {
             const sID = new URLSearchParams(window.location.search).get('sheetID');
             const response = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=deactivation&action=list`);
             const result = await response.json();
             if (!result.success) throw new Error(result.error || 'Pending records could not be loaded');
-            body.innerHTML = result.rows.length
-                ? result.rows.map(row => `<tr><td style="padding:8px;">${row[0] || ''}</td><td style="padding:8px;">${row[1] || ''}</td><td style="padding:8px;">${row[2] || ''}</td><td style="padding:8px;">${row[3] || ''}</td></tr>`).join('')
-                : '<tr><td colspan="4" style="padding:12px;">NO PENDING RECORDS</td></tr>';
+            pendingDeactivationRows = result.rows || [];
+            filterPendingDeactivationRecords();
+            if (isRefresh) message.innerText = 'PENDING RECORDS REFRESHED.';
         } catch (error) {
             body.innerHTML = `<tr><td colspan="4" style="padding:12px; color:#f52004;">${error.message || 'FETCH FAILED'}</td></tr>`;
             message.innerText = error.message || 'Pending records fetch failed.';
+        } finally {
+            if (refreshButton) {
+                refreshButton.disabled = false;
+                refreshButton.innerHTML = '<i class="fas fa-sync-alt"></i> REFRESH';
+            }
         }
     }
 
