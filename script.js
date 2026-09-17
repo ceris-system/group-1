@@ -7,16 +7,23 @@ const API_URL = window.API; // comes from universal.js, loaded in index.html's <
 async function handleAction(action) {
     const user = document.getElementById('userInput').value;
     const passInputEl = document.getElementById('passInput');
-    
-    if(!user) return showModal("REQUIRED", "Please enter your Identity Code.", "error");
 
-    const body = { action: action, user: user };
+    const body = { action: action, token: window.API_TOKEN };
 
     if (action === 'login') {
+        if (!user) return showModal("REQUIRED", "Please enter your Identity Code.", "error");
+        body.user = user;
         body.pass = passInputEl.value;
     } else if (action === 'updatePassword') {
+        const newUserVal = (document.getElementById('newUserInput').value || "").trim();
         const newPass = document.getElementById('newPassInput').value;
+        if (!newUserVal) return showModal("REQUIRED", "Please enter a username.", "error");
         if (!newPass) return showModal("REQUIRED", "Please enter a new password.", "error");
+        if (newPass.length < 8) return showModal("TOO SHORT", "New password must be at least 8 characters.", "error");
+        if (!window.pendingUpdateRowIndex) return showModal("SESSION EXPIRED", "Please log in again to update your account.", "error");
+        body.user = newUserVal;
+        body.rowIndex = window.pendingUpdateRowIndex;
+        body.newUser = newUserVal;
         body.newPass = newPass;
     }
 
@@ -34,23 +41,90 @@ async function handleAction(action) {
         const data = await response.json();
 
         if (data.success) {
-            window.sessionUser = user;
-            window.sessionBridges = data.bridges;
-            localStorage.setItem("userBridges", JSON.stringify(data.bridges));
-
             const currentStatus = data.status ? data.status.toUpperCase() : "";
 
-            if (action === 'updatePassword' || currentStatus === 'ACTIVE') {
+            if (action === 'updatePassword') {
+                // No bridges come back from an account-update response, so
+                // send the user back to a clean login with their new
+                // credentials rather than opening the dashboard without them.
+                window.pendingUpdateRowIndex = null;
+                backToLogin();
+                document.getElementById('userInput').value = body.newUser;
+                showModal("SECURED", "Access key updated. Please log in with your new credentials.", "success");
+            } else if (currentStatus === 'ACTIVE') {
+                window.sessionUser = user;
+                window.sessionBridges = data.bridges;
+                localStorage.setItem("userBridges", JSON.stringify(data.bridges));
                 showDashboard(data.clientName || user);
                 filterIcons();
-                if (action === 'updatePassword') showModal("SECURED", "Access key updated.", "success");
-            } else if (currentStatus === 'DEFAULT') {
+            } else if (currentStatus === 'REQUIRE_UPDATE' || currentStatus === 'DEFAULT') {
+                window.pendingUpdateRowIndex = data.rowIndex;
+                const newUserField = document.getElementById('newUserInput');
+                if (newUserField) newUserField.value = user;
                 document.getElementById('cardInner').classList.add('flipped');
             } else {
                 showModal("RESTRICTED", "Account locked.", "lock");
             }
         } else {
-            showModal("ACCESS DENIED", data.error || "Invalid credentials.", "error");
+            showModal("ACCESS DENIED", data.error || data.message || "Invalid credentials.", "error");
+        }
+    } catch (error) {
+        showModal("CONNECTION LOST", "PLEASE CHECK INTERNET CONNECTION", "error");
+    } finally {
+        if (typeof hideSeaWaveLoader === 'function') {
+            hideSeaWaveLoader();
+        }
+    }
+}
+
+function backToLogin() {
+    document.getElementById('cardInner').classList.remove('flipped');
+    document.getElementById('cardInner').style.visibility = 'visible';
+    const forgotFace = document.getElementById('forgotFace');
+    if (forgotFace) forgotFace.style.display = 'none';
+    const newUserField = document.getElementById('newUserInput');
+    const newPassField = document.getElementById('newPassInput');
+    if (newUserField) newUserField.value = "";
+    if (newPassField) newPassField.value = "";
+}
+
+function showForgotPassword() {
+    document.getElementById('cardInner').style.visibility = 'hidden';
+    document.getElementById('forgotFace').style.display = 'flex';
+    document.getElementById('forgotUserInput').value = document.getElementById('userInput').value || "";
+}
+
+function hideForgotPassword() {
+    document.getElementById('forgotFace').style.display = 'none';
+    document.getElementById('cardInner').style.visibility = 'visible';
+    document.getElementById('forgotUserInput').value = "";
+}
+
+async function handleForgotPassword() {
+    const username = (document.getElementById('forgotUserInput').value || "").trim();
+    if (!username) return showModal("REQUIRED", "Please enter your Identity Code.", "error");
+
+    if (typeof showSeaWaveLoader === 'function') {
+        showSeaWaveLoader("LOOKING UP ACCOUNT...");
+    }
+
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "lookupAccountForReset", user: username, token: window.API_TOKEN })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Same trust level as a default-account reset: knowing the
+            // username is enough to reach the update-password screen.
+            window.pendingUpdateRowIndex = data.rowIndex;
+            hideForgotPassword();
+            document.getElementById('newUserInput').value = data.username || username;
+            document.getElementById('cardInner').classList.add('flipped');
+        } else {
+            showModal("ACCESS DENIED", data.error || "Invalid username or password.", "error");
         }
     } catch (error) {
         showModal("CONNECTION LOST", "PLEASE CHECK INTERNET CONNECTION", "error");
@@ -117,7 +191,7 @@ async function runBufferPlusMinus() {
     }
 
     try {
-        const targetURL = `${API_URL}?sheetID=${encodeURIComponent(bufferBridgeID)}&module=${encodeURIComponent("5_buffer")}`;
+        const targetURL = `${API_URL}?sheetID=${encodeURIComponent(bufferBridgeID)}&module=${encodeURIComponent("5_buffer")}&token=${encodeURIComponent(window.API_TOKEN)}`;
         
         const response = await fetch(targetURL, {
             method: "GET",

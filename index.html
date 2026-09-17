@@ -160,16 +160,17 @@
                 <h2>LOGIN</h2>
                 <div class="input-group">
                     <p class="field-header">Username</p>
-                    <input type="text" id="userInput" placeholder="Identity code">
+                    <input type="text" id="userInput" placeholder="Identity code" autocomplete="username">
                 </div>
                 <div class="input-group">
                     <p class="field-header">Access Key</p>
                     <div class="password-wrapper">
-                        <input type="password" id="passInput" placeholder="••••••••">
+                        <input type="password" id="passInput" placeholder="••••••••" autocomplete="current-password">
                         <i class="fa-solid fa-eye toggle-password" style="color: rgb(47, 5, 235);" onclick="togglePass('passInput')"></i>
                     </div>
                 </div>
                 <button onclick="handleAction('login')">VERIFY</button>
+                <button type="button" class="link-button" onclick="showForgotPassword()">Forgot Password?</button>
             </div>
 
             <div class="glass-card register-face">
@@ -177,14 +178,31 @@
                 <h2>SECURE ACCOUNT</h2>
                 <p style="font-size: 0.8rem; text-align: center; opacity: 0.7; margin-bottom: 20px;">Default password detected. Set a new one.</p>
                 <div class="input-group">
+                    <p class="field-header">Username</p>
+                    <input type="text" id="newUserInput" placeholder="Identity code" autocomplete="username">
+                </div>
+                <div class="input-group">
                     <p class="field-header">New Password</p>
                     <div class="password-wrapper">
-                        <input type="password" id="newPassInput" placeholder="Min 8 characters">
+                        <input type="password" id="newPassInput" placeholder="Min 8 characters" autocomplete="new-password" minlength="8">
                         <i class="fa-solid fa-eye toggle-password" style="color: rgb(0, 145, 255);" onclick="togglePass('newPassInput')"></i>
                     </div>
                 </div>
                 <button onclick="handleAction('updatePassword')">UPDATE & ENTER</button>
+                <button type="button" class="link-button" onclick="backToLogin()">&larr; Back to Login</button>
             </div>
+        </div>
+
+        <div class="glass-card forgot-face" id="forgotFace" style="display:none;">
+            <div class="logo-container"><img src="logo.png" alt="C.E.R.I.S"></div>
+            <h2>FORGOT PASSWORD</h2>
+            <p style="font-size: 0.8rem; text-align: center; opacity: 0.7; margin-bottom: 20px;">Enter your identity code to reset your password.</p>
+            <div class="input-group">
+                <p class="field-header">Username</p>
+                <input type="text" id="forgotUserInput" placeholder="Identity code" autocomplete="username">
+            </div>
+            <button onclick="handleForgotPassword()">CONTINUE</button>
+            <button type="button" class="link-button" onclick="hideForgotPassword()">&larr; Back to Login</button>
         </div>
     </div>
 
