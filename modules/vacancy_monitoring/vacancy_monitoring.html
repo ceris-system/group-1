@@ -716,7 +716,7 @@
                     const sheetID = urlParams.get('sheetID');
                     const clientHeaderParam = urlParams.get('clientHeader') || "";
 
-                    const response = await fetch(`${window.parent.API}?sheetID=${sheetID}&module=vacancy_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}`);
+                    const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=vacancy_monitoring&clientHeader=${encodeURIComponent(clientHeaderParam)}`);
                     const jsonResponse = await response.json();
 
                     if (jsonResponse.error) {
@@ -839,7 +839,7 @@
 
         async function loadDeployerDropdowns() {
             try {
-                const response = await fetch(`${window.parent.API}?sheetID=${sheetID}&module=deployer_list`);
+                const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=deployer_list`);
                 const data = await response.json();
                 
                 if (data && data.deployers && data.coordinators) {
@@ -945,7 +945,7 @@
 
             simulateProgress(async (finishProgress) => {
                 try {
-                    const response = await fetch(`${window.parent.API}?sheetID=${sheetID}&module=vacancy_monitoring&action=updaterecord`, {
+                    const response = await fetch(`https://script.google.com/macros/s/AKfycby-7w-6wGZv_Kh00soMPofP8Nc66Uwgae87H2RJ7lVjBWDbVDl44WjCq2Lm3ZA04ss/exec?sheetID=${sheetID}&module=vacancy_monitoring&action=updaterecord`, {
                         method: 'POST',
                         body: JSON.stringify(payload)
                     });

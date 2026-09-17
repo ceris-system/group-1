@@ -1951,6 +1951,10 @@
         const formattedAg = formatDateText(rawDate);
         const ah = document.getElementById('updStatusAH').value;
 
+        // Statuses that move a VCODE out of PLANTILLA into VACANCY + INACTIVE once a date is set
+        const TRANSFER_STATUSES = ["RESIGNED", "AWOL", "TERMINATED", "MOVEMENT", "BACK OUT", "ENDO", "FLOATING"];
+        const shouldTransfer = TRANSFER_STATUSES.includes(String(ah).trim().toUpperCase()) && !!rawDate;
+
         openModal("UPDATING SYSTEM DATABASE", "Initializing...");
 
         const index = masterData.findIndex(r => String(r.vcode) === String(vcode));
@@ -1963,20 +1967,35 @@
         let progress = 0;
         const speed = setInterval(() => {
             progress += 25;
-            setModalProgress(progress, "SYNCING RECORDS...");
-            
-            if (progress >= 100) {
-                clearInterval(speed);
-                updateDisplay(masterData); 
-                closePanel();
-                setTimeout(() => {
-                    closeModal();
-                }, 400); 
+            if (progress < 100) {
+                setModalProgress(progress, shouldTransfer ? "MOVING RECORD TO INACTIVE..." : "SYNCING RECORDS...");
             }
         }, 50);
 
-        fetch(`${API}?sheetID=${sID}&module=Plantilla&action=updaterecord&vcode=${vcode}&rate=${rateValue}&updateDate=${encodeURIComponent(formattedAg)}&statusAH=${ah}`)
-        .catch(err => console.error("INTERNET CONNECTION FAILED", err));
+        try {
+            await fetch(`${API}?sheetID=${sID}&module=Plantilla&action=updaterecord&vcode=${vcode}&rate=${rateValue}&updateDate=${encodeURIComponent(formattedAg)}&statusAH=${ah}`);
+
+            if (shouldTransfer) {
+                await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=Plantilla&action=side_drawer_update`, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ vcode: vcode })
+                });
+
+                // Record now lives in VACANCY + INACTIVE — drop it from this table
+                if (index !== -1) masterData.splice(index, 1);
+            }
+        } catch (err) {
+            console.error("INTERNET CONNECTION FAILED", err);
+        } finally {
+            clearInterval(speed);
+            setModalProgress(100, "DONE");
+            updateDisplay(masterData);
+            closePanel();
+            setTimeout(() => {
+                closeModal();
+            }, 400);
+        }
     }
 
     function closePanel() { document.getElementById('sidePanel').classList.remove('open'); }
