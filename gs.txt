@@ -269,6 +269,8 @@ function doGet(e) {
         const rowClient = normalizeText(row[46]); // AU
         const rowMonth = normalizeMonth(row[42]); // AQ
         const rowYear = normalizeYear(row[43]); // AR
+        const rowStatus = normalizeText(row[33]); // AH
+        if (rowStatus.includes("MOVEMENT") || rowStatus.includes("RESHUFFLE")) return false;
         const clientMatches = clientMatchesRow(rowClient);
         const yearMatches = rowYear === String(activeYear);
         const monthMatches = reportMode !== "monthly" || rowMonth === normalizedRequestedMonth;

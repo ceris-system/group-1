@@ -250,8 +250,10 @@
         .side-drawer {
             position: fixed;
             top: 0;
+            bottom: 0;
             right: -680px;
             width: 640px;
+            height: 100vh;
             background: #070b16;
             border-left: 1px solid var(--accent-cyan);
             box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
@@ -506,8 +508,8 @@
         .dropdown-options-list {
             display: none;
             position: absolute;
-            top: calc(100% + 2px);
-            bottom: auto;
+            top: auto;
+            bottom: calc(100% + 2px);
             left: 0;
             width: 100%;
             max-height: 180px;
