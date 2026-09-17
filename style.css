@@ -11,6 +11,7 @@
             background: #0a0a0c; font-family: 'Roboto Mono', monospace;
             overflow: hidden; color: rgb(253, 252, 253);
             font-weight: bold;
+            color: black;
         }
 
         #bg-video {
@@ -18,7 +19,7 @@
             object-fit: cover; z-index: -1; opacity: 0.6;
         }
 
-        .flip-container { position: relative; perspective: 1000px; width: 400px; height: 500px; }
+        .flip-container { position: relative; perspective: 1000px; width: 400px; height: 580px; }
         .card-inner {
             position: relative; width: 100%; height: 100%;
             transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
@@ -40,6 +41,11 @@
 
         .register-face { transform: rotateY(180deg); }
 
+        .register-face h2,
+        .register-face p {
+            color: #111111;
+        }
+
         .forgot-face {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10;
@@ -47,7 +53,7 @@
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px);
             display: none; justify-content: center; align-items: center; z-index: 2000;
         }
 
