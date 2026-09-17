@@ -857,19 +857,18 @@
                     <td>${item.hc}</td>
                     <td>${item.vacantDate}</td>
                     <td>${item.aging}</td>
-                    <td><button class="eye-btn" type="button" data-row-index="${rowIndex}"><i class="fa-solid fa-eye"></i></button></td>
+                    <td><button class="eye-btn" type="button" onclick="openVacancyDrawerByIndex(${rowIndex})"><i class="fa-solid fa-eye"></i></button></td>
                 </tr>
             `).join('');
+        }
 
-            tbody.onclick = event => {
-                const button = event.target.closest('.eye-btn');
-                if (!button || !tbody.contains(button)) return;
+        function openVacancyDrawerByIndex(rowIndex) {
+            const visibleRows = document.querySelectorAll('#vacancyTableBody tr');
+            const row = visibleRows[Number(rowIndex)];
+            if (!row) return;
 
-                event.preventDefault();
-                event.stopPropagation();
-                const record = data[Number(button.dataset.rowIndex)];
-                if (record) openSideDrawer(record.vcode);
-            };
+            const vcode = row.cells[0] ? row.cells[0].textContent.trim() : '';
+            if (vcode) openSideDrawer(vcode);
         }
 
         function filterTableData() {
