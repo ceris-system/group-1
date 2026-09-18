@@ -218,7 +218,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 160px;
     font-size: 0.8rem;
 }
 @media (max-width: 480px) {
