@@ -894,7 +894,20 @@
             
             updateInitialProgress(75);
             const rawData = await resp.json();
-            
+
+            // Every backend error path returns { error: "..." } — an object,
+            // not the array of plantilla rows this code expects. Without this
+            // check, rawData.map() below throws on any backend error (bad
+            // permissions, wrong sheetID, sheet not found, auth failure...)
+            // and that real reason gets swallowed into a generic
+            // "INTERNET CONNECTION ERROR" message, hiding what's actually wrong.
+            if (rawData && !Array.isArray(rawData) && rawData.error) {
+                throw new Error(rawData.error);
+            }
+            if (!Array.isArray(rawData)) {
+                throw new Error("Unexpected response from server: " + JSON.stringify(rawData).slice(0, 200));
+            }
+
             updateInitialProgress(90);
             masterData = rawData.map(item => {
                 let clientVal = '';
@@ -929,7 +942,7 @@
             console.error(e);
             const loaderEl = document.getElementById('loader');
             if(loaderEl) {
-                loaderEl.innerHTML = `<h4 style="color:red">INTERNET CONNECTION ERROR</h4>`;
+                loaderEl.innerHTML = `<h4 style="color:red">${e.message ? e.message.replace(/</g, '&lt;') : 'INTERNET CONNECTION ERROR'}</h4>`;
             }
         }
     }
