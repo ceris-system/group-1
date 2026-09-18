@@ -69,12 +69,10 @@ async function handleAction(action) {
                 document.getElementById('userInput').value = body.newUser;
                 showModal("SECURED", "Access key updated. Please log in with your new credentials.", "success");
             } else if (currentStatus === 'ACTIVE') {
-                if (typeof window.setSessionToken === 'function') window.setSessionToken(data.sessionToken);
                 window.sessionUser = user;
                 window.sessionBridges = data.bridges;
                 localStorage.setItem("userBridges", JSON.stringify(data.bridges));
                 localStorage.setItem("sessionUser", user);
-                localStorage.setItem("sessionClientName", data.clientName || user);
                 showDashboard(data.clientName || user);
                 filterIcons();
             } else if (currentStatus === 'REQUIRE_UPDATE' || currentStatus === 'DEFAULT') {
@@ -225,8 +223,6 @@ function showModal(title, message, type) {
 function logoutSystem() {
     localStorage.removeItem("userBridges");
     localStorage.removeItem("sessionUser");
-    localStorage.removeItem("sessionClientName");
-    if (typeof window.clearSessionToken === 'function') window.clearSessionToken();
     window.sessionUser = null;
     window.sessionBridges = null;
     window.location.reload();
@@ -235,9 +231,6 @@ function logoutSystem() {
 function restoreSessionFromStorage() {
     const savedUser = localStorage.getItem("sessionUser");
     const savedBridges = JSON.parse(localStorage.getItem("userBridges") || '{}');
-    // Falls back to the username only for sessions saved before this field
-    // existed; every login from now on stores the real client name.
-    const savedClientName = localStorage.getItem("sessionClientName") || savedUser;
 
     if (!savedUser || !savedBridges || Object.keys(savedBridges).length === 0) {
         return;
@@ -252,7 +245,7 @@ function restoreSessionFromStorage() {
     if (authContainer) authContainer.style.display = 'none';
 
     const clientHeader = document.getElementById('clientHeader');
-    if (clientHeader) clientHeader.innerText = (savedClientName || 'SYSTEM').toUpperCase() + '';
+    if (clientHeader) clientHeader.innerText = (savedUser || 'SYSTEM').toUpperCase() + '';
 
     const displayUsername = document.getElementById('displayUsername');
     if (displayUsername) displayUsername.innerText = getTimeGreeting() + ', ' + savedUser.toUpperCase();
