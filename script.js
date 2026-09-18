@@ -73,6 +73,14 @@ async function handleAction(action) {
                 window.sessionBridges = data.bridges;
                 localStorage.setItem("userBridges", JSON.stringify(data.bridges));
                 localStorage.setItem("sessionUser", user);
+                // Store this browser's own copy of the login token. Each
+                // login gets its own token and the backend never checks it
+                // against anyone else's, so this is purely local bookkeeping
+                // — it does NOT log out any other device sharing this
+                // username/password.
+                if (data.sessionToken && typeof window.setSessionToken === 'function') {
+                    window.setSessionToken(data.sessionToken);
+                }
                 showDashboard(data.clientName || user);
                 filterIcons();
             } else if (currentStatus === 'REQUIRE_UPDATE' || currentStatus === 'DEFAULT') {
