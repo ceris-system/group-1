@@ -8,7 +8,7 @@
  * copy the new Web App URL and paste it as window.API below.
  */
 
-window.API = "https://script.google.com/macros/s/AKfycbwPRV9Umny4t35TIjaILS9bdvOJ4QLHy7oJ174bNiMFtthF3oewbknGwkFPBEJNyvTG/exec";
+window.API = "https://script.google.com/macros/s/AKfycby__F9GA6oK54DPnEbUV-zdFvIfEOtkqAO7NQklE1F3hgXrrcx0alkBO3aLqikd_Qgf/exec";
 
 // Must exactly match APP_SECRET in your Apps Script (Code.gs). Only change
 // this if you rotate the secret on the backend too.
