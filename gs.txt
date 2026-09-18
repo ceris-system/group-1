@@ -235,7 +235,8 @@ function doGet(e) {
       const normalizedMonth = requestedMonth || monthNames[new Date().getMonth()];
       const sourceColumnCount = Math.max(attritionSheet.getLastColumn(), 47); // AU contains the client filter.
       const sourceRange = attritionSheet.getRange(firstDataRow, 1, dataRowCount, sourceColumnCount);
-      const sourceRows = sourceRange.getDisplayValues();
+      const sourceRows = sourceRange.getValues();
+      const displayRows = sourceRange.getDisplayValues();
       const normalizeText = value => String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
       const normalizeMonth = value => {
         const text = normalizeText(value);
@@ -254,24 +255,19 @@ function doGet(e) {
         return Utilities.formatDate(dateValue, "Asia/Manila", "MMMM dd, yyyy");
       };
       const normalizedClient = normalizeText(clientName);
-      const clientAliases = normalizedClient
-        .split(/[\\/,|]+/)
-        .map(alias => alias.trim())
-        .filter(alias => alias.length >= 3);
-      const clientMatchesRow = rowClient => !normalizedClient || clientAliases.some(alias =>
-        rowClient === alias || rowClient.includes(alias) || alias.includes(rowClient)
-      );
       const normalizedRequestedMonth = normalizeMonth(normalizedMonth);
       let clientMatchCount = 0;
       let yearMatchCount = 0;
       let monthMatchCount = 0;
-      const filteredRows = sourceRows.filter(row => {
-        const rowClient = normalizeText(row[46]); // AU
-        const rowMonth = normalizeMonth(row[42]); // AQ
-        const rowYear = normalizeYear(row[43]); // AR
-        const rowStatus = normalizeText(row[33]); // AH
-        if (rowStatus.includes("MOVEMENT") || rowStatus.includes("RESHUFFLE")) return false;
-        const clientMatches = clientMatchesRow(rowClient);
+      const filteredRows = sourceRows.filter((row, index) => {
+        const displayRow = displayRows[index];
+        const rowClient = normalizeText(displayRow[46]); // AU
+        const rowMonth = normalizeMonth(displayRow[42]); // AQ
+        const rowYear = normalizeYear(displayRow[43]); // AR
+        const clientMatches = !normalizedClient
+          || rowClient === normalizedClient
+          || (rowClient.length >= 3 && normalizedClient.includes(rowClient))
+          || (normalizedClient.length >= 3 && rowClient.includes(normalizedClient));
         const yearMatches = rowYear === String(activeYear);
         const monthMatches = reportMode !== "monthly" || rowMonth === normalizedRequestedMonth;
         if (clientMatches) clientMatchCount++;
@@ -432,7 +428,7 @@ function doGet(e) {
               const row = userDbData[i];
               const bridgeSheetID = String(row[5] || "").trim(); 
               if (bridgeSheetID === String(sheetID).trim()) {
-                approvalSpreadsheetID = String(row[11] || "").trim() || sheetID; 
+                approvalSpreadsheetID = String(row[8] || "").trim() || sheetID; 
                 approvalClientHeader = String(row[4] || "").trim();
                 break;
               }
@@ -940,7 +936,7 @@ function doPost(e) {
             const row = userDbData[i];
             const bridgeSheetID = String(row[5] || "").trim();
             if (bridgeSheetID === String(sheetID).trim()) {
-              vacancySpreadsheetID = String(row[11] || "").trim() || sheetID; 
+              vacancySpreadsheetID = String(row[8] || "").trim() || sheetID; 
               break;
             }
           }
@@ -1248,7 +1244,7 @@ function doPost(e) {
           const vacancyID      = String(rows[i][8] || "").trim();  
           const hrEmplocID     = String(rows[i][9] || "").trim();  
           const attritionID    = String(rows[i][10] || "").trim(); 
-          const approvalID     = String(rows[i][11] || "").trim(); 
+          const approvalID     = String(rows[i][8] || "").trim(); 
           const deactivationID = String(rows[i][12] || "").trim(); 
 
           if (plantillaID)    bridgesObj["plantilla"] = plantillaID;
@@ -1284,7 +1280,7 @@ function doPost(e) {
         const vacancyID      = String(rows[i][8] || "").trim();  
         const hrEmplocID     = String(rows[i][9] || "").trim();  
         const attritionID    = String(rows[i][10] || "").trim(); 
-        const approvalID     = String(rows[i][11] || "").trim(); 
+        const approvalID     = String(rows[i][8] || "").trim(); 
         const deactivationID = String(rows[i][12] || "").trim(); 
 
         if (plantillaID)    bridgesObj["plantilla"] = plantillaID;
