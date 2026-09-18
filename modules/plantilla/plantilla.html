@@ -30,7 +30,7 @@
 
         .hc-counter {
             background: transparent; color: rgb(7, 7, 7); 
-            font-weight: bold; font-size: 15px; padding: 4px 10px;
+            font-weight: bold; font-size: 25px; padding: 4px 10px;
             display: inline-flex; align-items: center;
         }
 
@@ -90,7 +90,9 @@
         .action-btn:hover { background: #f7f4f400; color: #000; }
 
         /* --- Elegant toolbar buttons (scoped to .button-group only) --- */
-        
+        .button-group {
+            gap: 8px;
+        }
         .button-group .action-btn {
             position: relative;
             background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(240,242,255,0.78));
@@ -418,7 +420,7 @@
 <body>
 
 <div class="module-header-row">
-    <h1 class="module-title" style="font-size: 15px;">PLANTILLA</h1>
+    <h1 class="module-title" style="font-size: 25px;">PLANTILLA</h1>
 
     <div class="search-container">
         <input type="text" 
@@ -1058,7 +1060,7 @@
                                     "QUARANTINE", "RE-HIRED", "RELIEVER", "RESIGNED",
                                     "SEASONAL", "SICK LEAVE", "VACATION LEAVE", "TERMINATED", "MOVEMENT"
                                 ].map(status => `
-                                    <option value="${status}" ${String(member.status_ah).trim().toUpperCase() === status ? 'selected' : ''}>
+                                    <option value="${status}" ${String(member.status_ah || member.status || '').trim().toUpperCase() === status ? 'selected' : ''}>
                                         ${status}
                                     </option>
                                 `).join('')}
@@ -2116,13 +2118,16 @@
         openModal("UPDATING SYSTEM DATABASE", "Initializing...");
 
         const index = masterData.findIndex(r => String(r.vcode) === String(vcode));
+        // Keep a snapshot so a failed save can be rolled back instead of
+        // leaving the table showing values that were never actually saved.
+        const previousRecord = index !== -1 ? { ...masterData[index] } : null;
         if (index !== -1) {
             masterData[index].rate = rateValue;
             masterData[index].date_ag = formattedAg;
             masterData[index].status_ah = ah;
         }
 
-        setModalProgress(100, shouldTransfer ? "MOVING RECORD TO INACTIVE..." : "SYNCING RECORDS...");
+        setModalProgress(50, shouldTransfer ? "MOVING RECORD TO INACTIVE..." : "SYNCING RECORDS...");
 
         try {
             const updateResponse = await fetch(`${API}?sheetID=${encodeURIComponent(sID)}&module=Plantilla&action=updaterecord&vcode=${encodeURIComponent(vcode)}&rate=${encodeURIComponent(rateValue)}&updateDate=${encodeURIComponent(formattedAg)}&statusAH=${encodeURIComponent(ah)}`);
@@ -2152,13 +2157,18 @@
                 // Record now lives in VACANCY + INACTIVE — drop it from this table
                 if (index !== -1) masterData.splice(index, 1);
             }
-        } catch (err) {
-            console.error("INTERNET CONNECTION FAILED", err);
-        } finally {
+
             setModalProgress(100, "DONE");
             updateDisplay(masterData);
             closePanel();
             closeModal();
+        } catch (err) {
+            console.error("Plantilla update failed:", err);
+            // Undo the optimistic edit — the save did not actually go through,
+            // so the table must not show data that isn't really saved.
+            if (index !== -1 && previousRecord) masterData[index] = previousRecord;
+            updateDisplay(masterData);
+            finishModal("UPDATE FAILED: " + (err.message || "Please check your connection and try again."));
         }
     }
 
