@@ -674,8 +674,14 @@
                         if (cleanedClientName.toUpperCase() === "FOREVER DISER") {
                             const colADValue = String(r[29] || "").replace(/[\r\n\u00A0]+/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
                             matches = colADValue.includes("FOREVER");
-                        } 
-                        // Condition 2: If using a specific sub-cluster, look at Column B (Index 1)
+                        }
+                        // Condition 2: KING PRIMARY, KING PRIMARY S8, and KING PRIMARY UM share
+                        // one source sheet — any of the three should see the whole family's rows.
+                        else if (cleanedClientName.toUpperCase().startsWith("KING PRIMARY")) {
+                            const colBValue = String(r[1] || "").replace(/[\r\n\u00A0]+/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+                            matches = colBValue.startsWith("KING PRIMARY");
+                        }
+                        // Condition 3: If using a specific sub-cluster, look at Column B (Index 1)
                         else {
                             const colBValue = String(r[1] || "").replace(/[\r\n\u00A0]+/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
                             matches = colBValue.includes(cleanedClientName.toUpperCase());
