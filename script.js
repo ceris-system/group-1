@@ -5,7 +5,11 @@
 const API_URL = window.API; // comes from universal.js, loaded in index.html's <head>
 
 async function handleAction(action) {
-    const user = document.getElementById('userInput').value;
+    // Guard against double-submission: a slow connection plus an impatient
+    // double-tap (common on mobile) can otherwise fire two requests at once.
+    if (window.actionInFlight) return;
+
+    const user = (document.getElementById('userInput').value || "").trim();
     const passInputEl = document.getElementById('passInput');
 
     const body = { action: action, token: window.API_TOKEN };
@@ -27,6 +31,10 @@ async function handleAction(action) {
         body.newPass = newPass;
     }
 
+    window.actionInFlight = true;
+    const actionButtons = document.querySelectorAll('#authContainer button');
+    actionButtons.forEach(btn => btn.disabled = true);
+
     // Show the sea wave progress bar when processing starts
     if (typeof showSeaWaveLoader === 'function') {
         showSeaWaveLoader("AUTHORIZING USER...");
@@ -35,10 +43,19 @@ async function handleAction(action) {
     try {
         const response = await fetch(API_URL, {
             method: "POST",
-            body: JSON.stringify(body)
+            body: typeof window.apiBody === 'function' ? window.apiBody(body) : JSON.stringify(body)
         });
 
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseErr) {
+            // The endpoint responded, but not with JSON (e.g. Apps Script
+            // returned an HTML auth/quota page). Distinguish this from a
+            // dropped connection so it's actually diagnosable.
+            showModal("SERVER ERROR", "The server sent back an unexpected response. Please try again in a moment.", "error");
+            return;
+        }
 
         if (data.success) {
             const currentStatus = data.status ? data.status.toUpperCase() : "";
@@ -72,6 +89,8 @@ async function handleAction(action) {
     } catch (error) {
         showModal("CONNECTION LOST", "PLEASE CHECK INTERNET CONNECTION", "error");
     } finally {
+        window.actionInFlight = false;
+        actionButtons.forEach(btn => btn.disabled = false);
         if (typeof hideSeaWaveLoader === 'function') {
             hideSeaWaveLoader();
         }
@@ -102,20 +121,33 @@ function hideForgotPassword() {
 }
 
 async function handleForgotPassword() {
+    if (window.actionInFlight) return;
+
     const username = (document.getElementById('forgotUserInput').value || "").trim();
     if (!username) return showModal("REQUIRED", "Please enter your Identity Code.", "error");
+
+    window.actionInFlight = true;
+    const forgotButtons = document.querySelectorAll('#forgotFace button');
+    forgotButtons.forEach(btn => btn.disabled = true);
 
     if (typeof showSeaWaveLoader === 'function') {
         showSeaWaveLoader("LOOKING UP ACCOUNT...");
     }
 
     try {
+        const requestPayload = { action: "lookupAccountForReset", user: username, token: window.API_TOKEN };
         const response = await fetch(API_URL, {
             method: "POST",
-            body: JSON.stringify({ action: "lookupAccountForReset", user: username, token: window.API_TOKEN })
+            body: typeof window.apiBody === 'function' ? window.apiBody(requestPayload) : JSON.stringify(requestPayload)
         });
 
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseErr) {
+            showModal("SERVER ERROR", "The server sent back an unexpected response. Please try again in a moment.", "error");
+            return;
+        }
 
         if (data.success) {
             // Same trust level as a default-account reset: knowing the
@@ -130,6 +162,8 @@ async function handleForgotPassword() {
     } catch (error) {
         showModal("CONNECTION LOST", "PLEASE CHECK INTERNET CONNECTION", "error");
     } finally {
+        window.actionInFlight = false;
+        forgotButtons.forEach(btn => btn.disabled = false);
         if (typeof hideSeaWaveLoader === 'function') {
             hideSeaWaveLoader();
         }
@@ -251,7 +285,9 @@ async function runBufferPlusMinus() {
     }
 
     try {
-        const targetURL = `${API_URL}?sheetID=${encodeURIComponent(bufferBridgeID)}&module=${encodeURIComponent("5_buffer")}&token=${encodeURIComponent(window.API_TOKEN)}`;
+        const targetURL = typeof window.apiUrl === 'function'
+            ? window.apiUrl({ sheetID: bufferBridgeID, module: "5_buffer" })
+            : `${API_URL}?sheetID=${encodeURIComponent(bufferBridgeID)}&module=${encodeURIComponent("5_buffer")}&token=${encodeURIComponent(window.API_TOKEN)}`;
         
         const response = await fetch(targetURL, {
             method: "GET",
@@ -425,21 +461,50 @@ async function openModule(folderName) {
     }
 
     const bridges = window.sessionBridges || JSON.parse(localStorage.getItem("userBridges") || "{}");
-    
+
     if (folderName === 'hr_emploc_monitoring' && !bridges['hr_emploc_monitoring']) {
         bridges['hr_emploc_monitoring'] = "1DxY_U6XAH-03DzBoBpU7je_WCpoUYz8t6XmrQpWCL3s";
     }
 
-    let targetSheetID = bridges[folderName] || "";
+    // Some nav buttons cover more than one underlying bridge key (e.g. the
+    // FOR APPROVAL icon should still work if the server only ever sent back
+    // a "vacancy_monitoring" bridge). Fall back through the aliases before
+    // giving up.
+    const bridgeAliases = {
+        hr_emploc_monitoring: ['hr_emploc_monitoring', 'hr_emploc', 'emploc'],
+        approval: ['approval', 'for_approval', 'approvetransfer', 'vacancy_monitoring', 'vacancy']
+    };
+    const bridgeKeys = bridgeAliases[folderName] || [folderName];
+    const targetSheetID = bridgeKeys
+        .map(key => bridges ? bridges[key] : '')
+        .find(value => value && String(value).trim() !== '') || "";
 
-    if (folderName === 'hr_emploc_monitoring') {
-        if (!targetSheetID) {
-            showModal("RESTRICTED", "HR Emploc Monitoring spreadsheet is not configured for this user.", "error");
-            return;
-        }
+    if (!targetSheetID) {
+        const message = folderName === 'hr_emploc_monitoring'
+            ? "HR Emploc Monitoring spreadsheet is not configured for this user."
+            : "You do not have access to this module.";
+        showModal("RESTRICTED", message, folderName === 'hr_emploc_monitoring' ? "error" : "lock");
+        return;
     }
-    
+
     const currentClientHeader = document.getElementById('clientHeader').innerText || "";
     const iframeUrl = `modules/${folderName}/${folderName}.html?sheetID=${targetSheetID}&user=${window.sessionUser}&clientHeader=${encodeURIComponent(currentClientHeader)}`;
+
+    if (folderName === 'approval') {
+        container.innerHTML = `
+            <div id="approvalModal" style="position:fixed; inset:0; z-index:5000; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,0.72); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);">
+                <div style="position:relative; width:min(1400px, 96vw); height:min(850px, 92vh); background:#070b16; border:1px solid #00dbff; box-shadow:0 0 30px rgba(0,219,255,0.35);">
+                    <button type="button" onclick="closeApprovalModal()" aria-label="Close approval modal" style="position:absolute; top:8px; right:10px; z-index:2; width:34px; height:34px; padding:0; border:1px solid #00dbff; border-radius:4px; background:#070b16; color:#00dbff; cursor:pointer;">&times;</button>
+                    <iframe src="${iframeUrl}" title="Approval records" style="width:100%; height:100%; border:0;"></iframe>
+                </div>
+            </div>`;
+        return;
+    }
+
     container.innerHTML = `<iframe src="${iframeUrl}" style="width:100%; height:100%; border:none;"></iframe>`;
+}
+
+function closeApprovalModal() {
+    const modal = document.getElementById('approvalModal');
+    if (modal) modal.remove();
 }
