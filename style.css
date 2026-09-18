@@ -121,23 +121,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
     z-index: -1;
 }
 
 .system-title { font-weight: bold; font-size: 14px; color: rgb(45, 3, 231); white-space: nowrap; }
 
 /* Navigation Icons */
-.icon-nav {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 7px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-}
-.icon-nav::-webkit-scrollbar { display: none; }
+.icon-nav { display: flex; justify-content: center; gap: 7px; }
 
 .nav-btn {
     cursor: pointer;
@@ -150,7 +140,6 @@
     background: #dbdee22d;
     border-radius: 12px;
     transition: all 0.3s ease;
-    flex-shrink: 0;
 }
 
 .nav-btn small { 
@@ -173,56 +162,13 @@
     z-index: 10;
 }
 
+.nav-btn:hover { transform: scale(1.25); background: rgba(255, 255, 255, 0.25); }
+.nav-btn:hover small { opacity: 1; transform: translateX(-50%) translateY(-40px); }
 .nav-btn.active { background: rgba(243, 5, 17, 0.3); border: 1px solid #f30511; }
-
-/* Desktop / laptop with a real mouse: keep the original hover-reveal
-   tooltip behavior exactly as it was. Scoped by input capability (not
-   screen width) so a mouse-driven tablet still gets this too. */
-@media (hover: hover) and (pointer: fine) {
-    .nav-btn:hover { transform: scale(1.25); background: rgba(255, 255, 255, 0.25); }
-    .nav-btn:hover small { opacity: 1; transform: translateX(-50%) translateY(-40px); }
-}
-
-/* Touch devices (phone/tablet): hover tooltips never reliably fire, so
-   give every button a proper tap target and an always-visible label
-   instead of hiding it behind a hover state nobody can trigger. */
-@media (hover: none), (pointer: coarse) {
-    .nav-btn {
-        width: 54px;
-        height: 46px;
-        flex-direction: column;
-        gap: 2px;
-        border-radius: 10px;
-    }
-    .nav-btn small {
-        position: static;
-        display: block;
-        opacity: 1;
-        pointer-events: auto;
-        background: none;
-        color: inherit;
-        padding: 0;
-        font-size: 0.42rem;
-        transform: none;
-    }
-}
 
 @media (max-width: 600px) {
     .system-title { display: none; }
     .dash-header { padding: 5px 10px; }
-    .icon-nav { gap: 4px; }
-}
-
-.user-session-wrapper { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.tactical-user-label {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 160px;
-    font-size: 0.8rem;
-}
-@media (max-width: 480px) {
-    .tactical-user-label { max-width: 70px; font-size: 0.65rem; }
 }
 
 .logout-pill {
@@ -266,37 +212,35 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 5px;
     margin-right: 1px;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
+    height: auto;
+}
+
+#tableView { justify-items: center; }
+
+#dashboard {
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
 }
 
 .main-body {
     flex: 1;
+    height: 100%;
     width: 100%;
-    min-height: 0;
     box-sizing: border-box;
-    display: flex;
 }
 
-/* #tableView holds the per-module <iframe>. It used to force
-   width:100vw/height:100vh, which is bigger than the space actually left
-   under the header on phones (or once the header wraps to two lines),
-   pushing the bottom of every module off-screen. Filling the flex parent
-   instead means it always matches whatever room is really available. */
 #tableView {
     margin: 0;
-    width: 100%;
-    flex: 1;
-    min-height: 0;
+    width: 100vw;
+    height: 100vh;
     box-sizing: border-box;
-    justify-items: center;
 }
 
-#tableView iframe {
-    width: 100%;
-    height: 100%;
-    display: block;
+#tableView table {
+    width: 100% !important;
+    border-collapse: collapse;
+    min-width: 1000px;
 }
 
 .update-box {

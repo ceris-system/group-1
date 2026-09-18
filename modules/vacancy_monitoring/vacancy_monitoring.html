@@ -539,30 +539,6 @@
             background: rgba(0, 219, 255, 0.2);
             color: var(--accent-cyan);
         }
-
-        /* ============================================================
-           RESPONSIVE: phone/tablet. Desktop layout above is unchanged;
-           these rules only kick in below the given widths.
-           ============================================================ */
-        @media (max-width: 900px) {
-            body { padding: 10px; }
-            .module-header { flex-wrap: wrap; gap: 10px; }
-            .header-left, .header-right { flex-wrap: wrap; width: 100%; }
-            .search-box { width: 100%; }
-            .module-title-badge, .client-name-display { white-space: normal; font-size: 0.8rem; }
-            .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 10px; }
-            table { min-width: 720px; }
-            th, td { padding: 10px 12px; font-size: 0.8rem; }
-            .side-drawer { width: 100vw; right: -100vw; border-radius: 0; }
-            .drawer-body { grid-template-columns: 1fr; }
-            .glass-modal { width: min(350px, 90vw) !important; }
-        }
-
-        @media (max-width: 480px) {
-            .futuristic-refresh-btn { padding: 8px 10px; font-size: 0.75rem; }
-            th, td { font-size: 0.72rem; padding: 8px 8px; }
-            .custom-alert-box { width: 92vw; }
-        }
     </style>
 </head>
 <body>
