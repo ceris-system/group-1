@@ -69,6 +69,7 @@ async function handleAction(action) {
                 document.getElementById('userInput').value = body.newUser;
                 showModal("SECURED", "Access key updated. Please log in with your new credentials.", "success");
             } else if (currentStatus === 'ACTIVE') {
+                if (typeof window.setSessionToken === 'function') window.setSessionToken(data.sessionToken);
                 window.sessionUser = user;
                 window.sessionBridges = data.bridges;
                 localStorage.setItem("userBridges", JSON.stringify(data.bridges));
@@ -223,6 +224,7 @@ function showModal(title, message, type) {
 function logoutSystem() {
     localStorage.removeItem("userBridges");
     localStorage.removeItem("sessionUser");
+    if (typeof window.clearSessionToken === 'function') window.clearSessionToken();
     window.sessionUser = null;
     window.sessionBridges = null;
     window.location.reload();
